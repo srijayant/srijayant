@@ -12,14 +12,14 @@ Enterprise Architect — **SAP BTP**, **AI Core**, and **Agentic AI** for regula
 ## Featured work
 | Project | Focus |
 | --- | --- |
-| BTP ALM Health Agent | Governed agentic risk commentary across 100+ BTP apps (AI Core + security intel) |
-| CrewAI Agentic SDLC | Multi-agent SDLC framework on BTP with HITL gates |
-| [Globe Localization Engine](https://github.com/srijayant/BSCI-BTP-POC) | CAP/CDS compliance workflow for medical-device localization (100+ countries) |
+| [BTP ALM Health Agent](https://github.com/srijayant/btp-alm-health-agent) | Governed agentic risk commentary for BTP estates (AI Core + SCA + HITL modes) |
+| [CrewAI Agentic SDLC](https://github.com/srijayant/crewai-btp-sdlc) | Multi-agent SDLC on BTP/AI Core with human-in-the-loop gates |
+| [Globe Localization Engine](https://github.com/srijayant/BSCI-BTP-POC) | CAP/CDS compliance workflow for medical-device localization |
 | [abap-harvester](https://github.com/srijayant/abap-harvester) | SAP ABAP knowledge-base tooling |
 | [CAPM](https://github.com/srijayant/CAPM) | SAP CAP (Node.js) on BTP |
 | [pralay](https://github.com/srijayant/pralay) | Side project — 3D WebGL open world (Three.js) |
 
-> Enterprise AI systems above are production / client work — public links are sanitized demos or architecture notes where possible.
+> Concept repos are public reference architectures. Production enterprise systems stay private / sanitized.
 
 ## Stack
 `SAP BTP` · `AI Core` · `CAP` · `RAP` · `CDS` · `Fiori/UI5` · `ABAP on HANA` · `CrewAI` · `Python` · `Node.js` · `HANA Cloud`
