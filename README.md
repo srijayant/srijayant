@@ -12,12 +12,14 @@ Enterprise Architect — **SAP BTP**, **AI Core**, and **Agentic AI** for regula
 ## Featured work
 | Project | Focus |
 | --- | --- |
-| [BTP ALM Health Agent](https://github.com/srijayant/btp-alm-health-agent) | Governed agentic risk commentary for BTP estates (AI Core + SCA + HITL modes) |
-| [CrewAI Agentic SDLC](https://github.com/srijayant/crewai-btp-sdlc) | Multi-agent SDLC on BTP/AI Core with human-in-the-loop gates |
-| [Globe Localization Engine](https://github.com/srijayant/BSCI-BTP-POC) | CAP/CDS compliance workflow for medical-device localization |
+| [BTP ALM Health Agent](https://github.com/srijayant/btp-alm-health-agent) | Governed agentic risk commentary for BTP estates |
+| [CrewAI Agentic SDLC](https://github.com/srijayant/crewai-btp-sdlc) | Multi-agent SDLC on BTP/AI Core with HITL gates |
+| [HANA Cloud RAG + AI Core](https://github.com/srijayant/hana-cloud-rag-aicore) | Enterprise RAG with HANA vectors + AI Core |
+| [XSUAA Multi-Tenant Kit](https://github.com/srijayant/btp-xsuaa-multitenant-kit) | CAP multi-tenant security reference |
+| [FDA AI Validation Playbook](https://github.com/srijayant/fda-ai-validation-playbook) | Validating agentic AI in MedTech / FDA landscapes |
+| [Globe Localization Engine](https://github.com/srijayant/BSCI-BTP-POC) | CAP/CDS compliance for medical-device localization |
 | [abap-harvester](https://github.com/srijayant/abap-harvester) | SAP ABAP knowledge-base tooling |
-| [CAPM](https://github.com/srijayant/CAPM) | SAP CAP (Node.js) on BTP |
-| [pralay](https://github.com/srijayant/pralay) | Side project — 3D WebGL open world (Three.js) |
+| [pralay](https://github.com/srijayant/pralay) | Side project — 3D WebGL open world |
 
 > Concept repos are public reference architectures. Production enterprise systems stay private / sanitized.
 
