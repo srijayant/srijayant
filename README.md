@@ -2,6 +2,10 @@
 
 Enterprise Architect — **SAP BTP**, **AI Core**, and **Agentic AI** for regulated MedTech.
 
+<img src="assets/agent-world.svg" alt="Animated pixel-art view of my multi-agent SDLC: Planner, Dev, Reviewer and QA agents pass work through a human-in-the-loop gate to a validated deploy." width="100%" />
+
+<sub>My agent stack as a game — [play the interactive version](https://srijayant.github.io/srijayant/agent-world/) ([source](agent-world/index.html)): agents walk the pipeline, you approve releases at the HITL gate.</sub>
+
 13+ years across SAP ABAP → BTP full-stack (CAP / RAP / Fiori). Currently lead architect on a **100+ application** BTP estate at Boston Scientific (FDA-validated landscape). M.Tech AI/ML (BITS Pilani) · SAP Certified BTP Solution Architect.
 
 ## What I build

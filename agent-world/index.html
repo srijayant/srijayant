@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Agent Ops — Sri's Multi-Agent SDLC</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #010409; --line: #30363d; --dim: #8b949e;
+    --green: #3fb950; --lgreen: #7ee787; --gold: #f0b72f; --blue: #79c0ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: #c9d1d9;
+    font-family: "Courier New", Courier, monospace;
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh; padding: 16px;
+  }
+  h1 { font-size: 18px; letter-spacing: 2px; color: var(--lgreen); margin: 8px 0 2px; }
+  .sub { font-size: 11px; color: var(--dim); margin-bottom: 12px; letter-spacing: 1px; }
+  #wrap { position: relative; }
+  canvas {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+    image-rendering: pixelated; max-width: 100%; cursor: pointer;
+  }
+  #hud {
+    display: flex; gap: 24px; font-size: 12px; margin-top: 10px;
+    border: 1px solid var(--line); background: var(--panel);
+    padding: 8px 16px; border-radius: 6px; flex-wrap: wrap; justify-content: center;
+  }
+  #hud b { color: var(--lgreen); }
+  #card {
+    position: absolute; display: none; width: 230px; background: var(--panel);
+    border: 1px solid var(--gold); border-radius: 6px; padding: 12px;
+    font-size: 11px; line-height: 1.6; pointer-events: none; z-index: 5;
+  }
+  #card h3 { margin: 0 0 4px; font-size: 13px; color: var(--gold); letter-spacing: 1px; }
+  #card .cls { color: var(--dim); }
+  .statbar { height: 8px; background: #161b22; border: 1px solid var(--line); margin: 2px 0 6px; }
+  .statbar i { display: block; height: 100%; background: var(--green); }
+  #approve {
+    display: none; position: absolute; z-index: 6;
+    background: var(--gold); color: #0d1117; border: none; border-radius: 4px;
+    font-family: inherit; font-weight: bold; font-size: 12px; letter-spacing: 1px;
+    padding: 8px 14px; cursor: pointer; box-shadow: 0 0 12px rgba(240,183,47,.6);
+    animation: pulse 1s infinite;
+  }
+  @keyframes pulse { 50% { box-shadow: 0 0 22px rgba(240,183,47,.9); } }
+  .foot { font-size: 10px; color: var(--dim); margin-top: 12px; letter-spacing: 1px; }
+  .foot a { color: var(--blue); }
+</style>
+</head>
+<body>
+<h1>AGENT OPS</h1>
+<div class="sub">multi-agent SDLC on SAP BTP + AI Core &nbsp;·&nbsp; you are the human in the loop</div>
+<div id="wrap">
+  <canvas id="c" width="880" height="420"></canvas>
+  <div id="card"></div>
+  <button id="approve">APPROVE ✓</button>
+</div>
+<div id="hud">
+  <span>SHIPPED: <b id="shipped">0</b></span>
+  <span>IN FLIGHT: <b id="inflight">0</b></span>
+  <span>AWAITING SIGN-OFF: <b id="waiting">0</b></span>
+  <span>GOVERNANCE: <b>100%</b></span>
+</div>
+<div class="foot">click an agent for stats · approve releases at the HITL gate · <a href="https://github.com/srijayant">github.com/srijayant</a></div>
+
+<script>
+"use strict";
+const cv = document.getElementById("c"), ctx = cv.getContext("2d");
+const cardEl = document.getElementById("card"), approveBtn = document.getElementById("approve");
+const FLOOR = 330;
+
+const STATIONS = [
+  { x: 96,  name: "BACKLOG"  },
+  { x: 216, name: "PLAN"     },
+  { x: 346, name: "BUILD"    },
+  { x: 476, name: "REVIEW"   },
+  { x: 606, name: "HITL GATE"},
+  { x: 760, name: "DEPLOY"   },
+];
+
+const AGENTS = [
+  { name: "PLANNER",  cls: "LVL 13 · STRATEGIST", home: 216, color: "#8957e5", hat: "#bc8cff", accent: "#bc8cff",
+    stats: { INT: 96, SPD: 70, RIG: 88 }, quest: "Decompose the epic into governed work items.",
+    lines: ["epic decomposed", "scoping sprint 42", "risk register updated"] },
+  { name: "DEV AGENT", cls: "LVL 12 · CAP/RAP",   home: 346, color: "#1f6feb", hat: "#1f6feb", accent: "#79c0ff",
+    stats: { INT: 90, SPD: 92, RIG: 80 }, quest: "Generate CAP services + CDS models, green build.",
+    lines: ["cds build ok", "srv deployed to dev", "unit tests green"] },
+  { name: "REVIEWER", cls: "LVL 12 · CRITIC",     home: 476, color: "#db6d28", hat: "#db6d28", accent: "#f0883e",
+    stats: { INT: 94, SPD: 65, RIG: 97 }, quest: "Static analysis, security lint, design review.",
+    lines: ["0 findings left", "xsuaa scopes ok", "no secrets in code"] },
+  { name: "QA AGENT", cls: "LVL 11 · IQ/OQ/PQ",   home: 606, color: "#2ea043", hat: "#2ea043", accent: "#7ee787",
+    stats: { INT: 88, SPD: 75, RIG: 99 }, quest: "Execute validation protocol, package evidence.",
+    lines: ["evidence packed", "traceability 100%", "protocol executed"] },
+  { name: "HUMAN",    cls: "FINAL SIGN-OFF",      home: 690, color: "#f0b72f", hat: "#21262d", accent: "#f0b72f",
+    stats: { INT: 99, SPD: 40, RIG: 100 }, quest: "Review evidence. Nothing ships without you.",
+    lines: ["reviewing evidence…", "checking audit trail", "your call, operator"], human: true },
+];
+AGENTS.forEach(a => { a.x = a.home; a.tx = a.home; a.bubble = null; a.bubbleT = 0; a.step = Math.random() * 10; });
+
+let tasks = [], shipped = 0, spawnT = 0, taskId = 0, t = 0;
+
+function spawnTask() {
+  tasks.push({ id: ++taskId, stage: 0, x: STATIONS[0].x, prog: 0, waiting: false, done: false });
+}
+spawnTask();
+
+function px(x, y, w, h, col) { ctx.fillStyle = col; ctx.fillRect(Math.round(x), Math.round(y), w, h); }
+
+function drawAgent(a) {
+  const bobY = Math.sin(t / 12 + a.step) * 2;
+  const x = a.x - 12, y = FLOOR - 56 + bobY;
+  px(x + 4,  y,      16, a.human ? 6 : 8, a.hat);
+  if (!a.human && a.name === "PLANNER") px(x, y + 6, 24, 4, a.hat);
+  px(x + 4,  y + 10, 16, 14, a.human ? "#d4a06a" : "#e6d3a3");
+  px(x + 6,  y + 14, 4, 4, "#0d1117");
+  px(x + 14, y + 14, 4, 4, "#0d1117");
+  px(x + 2,  y + 24, 20, 20, a.color);
+  px(x + 8,  y + 30, 8, 6, a.accent);
+  px(x + 2,  y + 44, 8, 6, "#21262d");
+  px(x + 14, y + 44, 8, 6, "#21262d");
+  ctx.fillStyle = "#c9d1d9"; ctx.font = "bold 10px Courier New"; ctx.textAlign = "center";
+  ctx.fillText(a.name, a.x, FLOOR + 24);
+  ctx.fillStyle = "#8b949e"; ctx.font = "8px Courier New";
+  ctx.fillText(a.cls, a.x, FLOOR + 36);
+  if (a.bubble && a.bubbleT > 0) {
+    const w = ctx.measureText(a.bubble).width + 20;
+    ctx.font = "bold 9px Courier New";
+    ctx.fillStyle = a.accent;
+    ctx.fillRect(a.x - w / 2, y - 26, w, 18);
+    ctx.beginPath();
+    ctx.moveTo(a.x - 3, y - 8); ctx.lineTo(a.x + 5, y); ctx.lineTo(a.x + 6, y - 8); ctx.fill();
+    ctx.fillStyle = "#0d1117";
+    ctx.fillText(a.bubble, a.x, y - 14);
+  }
+}
+
+function drawScene() {
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.strokeStyle = "#161b22"; ctx.lineWidth = 1;
+  for (let gy = 80; gy < 420; gy += 80) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(880, gy); ctx.stroke(); }
+  for (let gx = 110; gx < 880; gx += 110) { ctx.beginPath(); ctx.moveTo(gx, 40); ctx.lineTo(gx, 420); ctx.stroke(); }
+
+  // HUD strip
+  px(0, 0, 880, 40, "#010409"); px(0, 39, 880, 1, "#30363d");
+  ctx.fillStyle = (t % 80 < 50) ? "#3fb950" : "#123a1c";
+  ctx.beginPath(); ctx.arc(24, 20, 5, 0, 7); ctx.fill();
+  ctx.fillStyle = "#7ee787"; ctx.font = "bold 13px Courier New"; ctx.textAlign = "left";
+  ctx.fillText("AGENT OPS · SAP BTP + AI CORE", 40, 25);
+  ctx.fillStyle = "#8b949e"; ctx.font = "10px Courier New";
+  ctx.fillText("REGION: FDA-VALIDATED", 600, 25);
+
+  // conveyor
+  px(60, FLOOR - 14, 760, 10, "#161b22");
+  ctx.fillStyle = "#8b949e"; ctx.font = "9px Courier New"; ctx.textAlign = "center";
+  STATIONS.forEach(s => {
+    px(s.x - 2, FLOOR - 4, 4, 6, "#30363d");
+    ctx.fillText(s.name, s.x, FLOOR - 60 - 14);
+  });
+
+  // HITL gate frame
+  ctx.strokeStyle = "#f0b72f"; ctx.setLineDash([4, 4]);
+  ctx.strokeRect(STATIONS[4].x - 34, 160, 68, 168);
+  ctx.setLineDash([]);
+  const gateWaiting = tasks.some(k => k.waiting);
+  ctx.fillStyle = gateWaiting ? (t % 30 < 15 ? "#f0b72f" : "#4d3a08") : "#4d3a08";
+  ctx.beginPath(); ctx.arc(STATIONS[4].x, 172, 5, 0, 7); ctx.fill();
+
+  // deploy tower
+  px(742, 226, 36, 100, "#161b22");
+  ctx.strokeStyle = "#30363d"; ctx.strokeRect(742, 226, 36, 100);
+  [["#1f6feb",238],["#1f6feb",254],["#2ea043",270],["#2ea043",286]].forEach(([c, y]) => px(748, y, 24, 8, c));
+
+  // tasks
+  tasks.forEach(k => {
+    px(k.x - 8, FLOOR - 24, 16, 16, k.waiting ? (t % 30 < 15 ? "#f0b72f" : "#8a6a14") : "#f0b72f");
+    ctx.fillStyle = "#0d1117"; ctx.font = "bold 9px Courier New"; ctx.textAlign = "center";
+    ctx.fillText("T" + k.id, k.x, FLOOR - 13);
+  });
+
+  AGENTS.forEach(drawAgent);
+}
+
+function update() {
+  t++;
+  spawnT++;
+  if (spawnT > 420 && tasks.length < 3) { spawnTask(); spawnT = 0; }
+
+  tasks.forEach(k => {
+    const target = STATIONS[Math.min(k.stage, 5)].x;
+    if (Math.abs(k.x - target) > 1) { k.x += Math.sign(target - k.x) * 1.4; return; }
+    if (k.stage >= 5) { k.done = true; return; }
+    if (k.stage === 4) {
+      if (!k.waiting) { k.waiting = true; say(AGENTS[4], "your call, operator"); }
+      return; // holds until human clicks APPROVE
+    }
+    k.prog++;
+    const worker = AGENTS[k.stage - 1] || AGENTS[0];
+    if (k.prog === 30 && k.stage > 0) say(worker, worker.lines[(k.id + k.stage) % worker.lines.length]);
+    if (k.prog > 120) { k.stage++; k.prog = 0; }
+  });
+
+  const before = tasks.length;
+  tasks = tasks.filter(k => !k.done);
+  shipped += before - tasks.length;
+
+  AGENTS.forEach(a => { if (a.bubbleT > 0) a.bubbleT--; else a.bubble = null; });
+
+  document.getElementById("shipped").textContent = shipped;
+  document.getElementById("inflight").textContent = tasks.length;
+  document.getElementById("waiting").textContent = tasks.filter(k => k.waiting).length;
+
+  const w = tasks.find(k => k.waiting);
+  if (w) {
+    const r = cv.getBoundingClientRect(), sx = r.width / cv.width;
+    approveBtn.style.display = "block";
+    approveBtn.style.left = (STATIONS[4].x * sx - 44) + "px";
+    approveBtn.style.top = (120 * (r.height / cv.height)) + "px";
+  } else approveBtn.style.display = "none";
+}
+
+function say(agent, text) { agent.bubble = text; agent.bubbleT = 140; }
+
+approveBtn.addEventListener("click", () => {
+  const k = tasks.find(x => x.waiting);
+  if (k) { k.waiting = false; k.stage = 5; say(AGENTS[4], "approved ✓"); }
+});
+
+cv.addEventListener("click", e => {
+  const r = cv.getBoundingClientRect();
+  const mx = (e.clientX - r.left) * (cv.width / r.width);
+  const my = (e.clientY - r.top) * (cv.height / r.height);
+  const hit = AGENTS.find(a => Math.abs(mx - a.x) < 20 && my > FLOOR - 70 && my < FLOOR + 40);
+  if (!hit) { cardEl.style.display = "none"; return; }
+  const s = hit.stats;
+  cardEl.innerHTML =
+    `<h3>${hit.name}</h3><div class="cls">${hit.cls}</div>` +
+    `INT<div class="statbar"><i style="width:${s.INT}%"></i></div>` +
+    `SPD<div class="statbar"><i style="width:${s.SPD}%"></i></div>` +
+    `RIGOR<div class="statbar"><i style="width:${s.RIG}%"></i></div>` +
+    `<div style="color:#f0b72f">QUEST</div>${hit.quest}`;
+  cardEl.style.display = "block";
+  const sx = r.width / cv.width;
+  cardEl.style.left = Math.min(hit.x * sx + 20, r.width - 240) + "px";
+  cardEl.style.top = "150px";
+});
+
+(function loop() { update(); drawScene(); requestAnimationFrame(loop); })();
+</script>
+</body>
+</html>

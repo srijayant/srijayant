@@ -1,0 +1,207 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 400" width="880" height="400" role="img" aria-label="Animated pixel-art view of Sri's multi-agent SDLC pipeline: Planner, Dev, Reviewer and QA agents pass a task through a human-in-the-loop gate to a validated deploy.">
+  <style>
+    .px { shape-rendering: crispEdges; }
+    text { font-family: "Courier New", Courier, monospace; }
+    .t-hud   { fill: #7ee787; font-size: 13px; font-weight: bold; letter-spacing: 1px; }
+    .t-dim   { fill: #8b949e; font-size: 10px; letter-spacing: 1px; }
+    .t-name  { fill: #c9d1d9; font-size: 10px; font-weight: bold; text-anchor: middle; letter-spacing: 1px; }
+    .t-class { fill: #8b949e; font-size: 8px;  text-anchor: middle; letter-spacing: 1px; }
+    .t-bub   { fill: #0d1117; font-size: 9px;  font-weight: bold; text-anchor: middle; }
+    .t-gate  { fill: #f0b72f; font-size: 9px;  font-weight: bold; text-anchor: middle; letter-spacing: 1px; }
+
+    @keyframes bob   { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: .15; } }
+    @keyframes scan  { 0% { transform: translateY(-40px); } 100% { transform: translateY(400px); } }
+
+    .agent   { animation: bob 1.3s ease-in-out infinite; }
+    .d0 { animation-delay: 0s;   } .d1 { animation-delay: .25s; }
+    .d2 { animation-delay: .5s;  } .d3 { animation-delay: .75s; }
+    .d4 { animation-delay: 1s;   }
+    .live    { animation: blink 1.4s steps(1) infinite; }
+    .lamp    { animation: blink .9s ease-in-out infinite; }
+    .scanline{ animation: scan 7s linear infinite; opacity: .06; }
+
+    /* task token travels the pipeline, pausing at each station */
+    @keyframes travel {
+      0%,6%    { transform: translate(96px,  300px); }
+      12%,22%  { transform: translate(216px, 300px); }
+      28%,38%  { transform: translate(346px, 300px); }
+      44%,54%  { transform: translate(476px, 300px); }
+      60%,72%  { transform: translate(606px, 300px); }  /* held at HITL gate */
+      78%,92%  { transform: translate(756px, 300px); }
+      100%     { transform: translate(96px,  300px); }
+    }
+    .task { animation: travel 14s linear infinite; }
+
+    /* speech bubbles take turns */
+    @keyframes say0 { 0%,4% {opacity:0;} 6%,20% {opacity:1;} 22%,100% {opacity:0;} }
+    @keyframes say1 { 0%,22%{opacity:0;} 24%,38%{opacity:1;} 40%,100%{opacity:0;} }
+    @keyframes say2 { 0%,40%{opacity:0;} 42%,56%{opacity:1;} 58%,100%{opacity:0;} }
+    @keyframes say3 { 0%,58%{opacity:0;} 60%,72%{opacity:1;} 74%,100%{opacity:0;} }
+    @keyframes say4 { 0%,74%{opacity:0;} 76%,92%{opacity:1;} 94%,100%{opacity:0;} }
+    .s0 { animation: say0 14s linear infinite; }
+    .s1 { animation: say1 14s linear infinite; }
+    .s2 { animation: say2 14s linear infinite; }
+    .s3 { animation: say3 14s linear infinite; }
+    .s4 { animation: say4 14s linear infinite; }
+
+    /* deploy beacon fires when the task arrives */
+    @keyframes ship { 0%,78% {opacity:0;} 82%,92% {opacity:1;} 96%,100% {opacity:0;} }
+    .ship { animation: ship 14s linear infinite; }
+
+    @keyframes fill { 0% {width:0;} 100% {width:120px;} }
+    .bar { animation: fill 3s ease-out forwards; }
+  </style>
+
+  <!-- backdrop -->
+  <rect width="880" height="400" fill="#0d1117"/>
+  <g stroke="#161b22" stroke-width="1">
+    <path d="M0 80H880 M0 160H880 M0 240H880 M0 320H880"/>
+    <path d="M110 40V400 M220 40V400 M330 40V400 M440 40V400 M550 40V400 M660 40V400 M770 40V400"/>
+  </g>
+  <rect class="scanline" width="880" height="40" fill="#7ee787"/>
+
+  <!-- HUD -->
+  <rect width="880" height="40" fill="#010409"/>
+  <rect y="39" width="880" height="1" fill="#30363d"/>
+  <circle class="live" cx="24" cy="20" r="5" fill="#3fb950"/>
+  <text class="t-hud" x="40" y="25">AGENT OPS · SAP BTP + AI CORE</text>
+  <text class="t-dim" x="430" y="25">REGION: FDA-VALIDATED</text>
+  <text class="t-dim" x="640" y="25">GOVERNANCE</text>
+  <rect x="730" y="14" width="122" height="12" fill="#161b22" stroke="#30363d"/>
+  <rect class="bar px" x="731" y="15" height="10" fill="#3fb950"/>
+
+  <!-- pipeline floor -->
+  <rect class="px" x="60" y="316" width="760" height="10" fill="#161b22"/>
+  <g fill="#30363d" class="px">
+    <rect x="150" y="319" width="24" height="4"/><rect x="280" y="319" width="24" height="4"/>
+    <rect x="410" y="319" width="24" height="4"/><rect x="540" y="319" width="24" height="4"/>
+    <rect x="690" y="319" width="24" height="4"/>
+  </g>
+
+  <!-- ===== station: PLANNER (mage, purple) ===== -->
+  <g class="agent d0">
+    <g class="px" transform="translate(84,236)">
+      <rect x="4"  y="0"  width="16" height="6"  fill="#bc8cff"/>
+      <rect x="0"  y="6"  width="24" height="4"  fill="#bc8cff"/>
+      <rect x="4"  y="10" width="16" height="14" fill="#e6d3a3"/>
+      <rect x="6"  y="14" width="4"  height="4"  fill="#0d1117"/>
+      <rect x="14" y="14" width="4"  height="4"  fill="#0d1117"/>
+      <rect x="2"  y="24" width="20" height="20" fill="#8957e5"/>
+      <rect x="8"  y="30" width="8"  height="6"  fill="#bc8cff"/>
+      <rect x="2"  y="44" width="8"  height="6"  fill="#21262d"/>
+      <rect x="14" y="44" width="8"  height="6"  fill="#21262d"/>
+    </g>
+  </g>
+  <text class="t-name"  x="96" y="352">PLANNER</text>
+  <text class="t-class" x="96" y="364">LVL 13 · STRATEGIST</text>
+  <g class="s0"><rect x="56" y="196" width="82" height="20" rx="4" fill="#bc8cff"/>
+    <path d="M92 216l6 8 2-8z" fill="#bc8cff"/>
+    <text class="t-bub" x="97" y="210">epic decomposed</text></g>
+
+  <!-- ===== station: DEV (builder, blue) ===== -->
+  <g class="agent d1">
+    <g class="px" transform="translate(204,236)">
+      <rect x="2"  y="0"  width="20" height="8"  fill="#1f6feb"/>
+      <rect x="4"  y="10" width="16" height="14" fill="#e6d3a3"/>
+      <rect x="6"  y="14" width="4"  height="4"  fill="#0d1117"/>
+      <rect x="14" y="14" width="4"  height="4"  fill="#0d1117"/>
+      <rect x="2"  y="24" width="20" height="20" fill="#1f6feb"/>
+      <rect x="8"  y="30" width="8"  height="6"  fill="#79c0ff"/>
+      <rect x="2"  y="44" width="8"  height="6"  fill="#21262d"/>
+      <rect x="14" y="44" width="8"  height="6"  fill="#21262d"/>
+    </g>
+  </g>
+  <text class="t-name"  x="216" y="352">DEV AGENT</text>
+  <text class="t-class" x="216" y="364">LVL 12 · CAP/RAP</text>
+  <g class="s1"><rect x="178" y="196" width="78" height="20" rx="4" fill="#79c0ff"/>
+    <path d="M212 216l6 8 2-8z" fill="#79c0ff"/>
+    <text class="t-bub" x="217" y="210">cds build ok</text></g>
+
+  <!-- ===== station: REVIEWER (orange) ===== -->
+  <g class="agent d2">
+    <g class="px" transform="translate(334,236)">
+      <rect x="4"  y="0"  width="16" height="8"  fill="#db6d28"/>
+      <rect x="4"  y="10" width="16" height="14" fill="#e6d3a3"/>
+      <rect x="4"  y="13" width="16" height="6"  fill="#161b22"/>
+      <rect x="6"  y="14" width="4"  height="4"  fill="#f0b72f"/>
+      <rect x="14" y="14" width="4"  height="4"  fill="#f0b72f"/>
+      <rect x="2"  y="24" width="20" height="20" fill="#db6d28"/>
+      <rect x="8"  y="30" width="8"  height="6"  fill="#f0883e"/>
+      <rect x="2"  y="44" width="8"  height="6"  fill="#21262d"/>
+      <rect x="14" y="44" width="8"  height="6"  fill="#21262d"/>
+    </g>
+  </g>
+  <text class="t-name"  x="346" y="352">REVIEWER</text>
+  <text class="t-class" x="346" y="364">LVL 12 · CRITIC</text>
+  <g class="s2"><rect x="306" y="196" width="82" height="20" rx="4" fill="#f0883e"/>
+    <path d="M342 216l6 8 2-8z" fill="#f0883e"/>
+    <text class="t-bub" x="347" y="210">0 findings left</text></g>
+
+  <!-- ===== station: QA (green) ===== -->
+  <g class="agent d3">
+    <g class="px" transform="translate(464,236)">
+      <rect x="4"  y="0"  width="16" height="8"  fill="#2ea043"/>
+      <rect x="4"  y="10" width="16" height="14" fill="#e6d3a3"/>
+      <rect x="6"  y="14" width="4"  height="4"  fill="#0d1117"/>
+      <rect x="14" y="14" width="4"  height="4"  fill="#0d1117"/>
+      <rect x="2"  y="24" width="20" height="20" fill="#2ea043"/>
+      <rect x="8"  y="30" width="8"  height="6"  fill="#7ee787"/>
+      <rect x="2"  y="44" width="8"  height="6"  fill="#21262d"/>
+      <rect x="14" y="44" width="8"  height="6"  fill="#21262d"/>
+    </g>
+  </g>
+  <text class="t-name"  x="476" y="352">QA AGENT</text>
+  <text class="t-class" x="476" y="364">LVL 11 · IQ/OQ/PQ</text>
+  <g class="s3"><rect x="436" y="196" width="80" height="20" rx="4" fill="#7ee787"/>
+    <path d="M472 216l6 8 2-8z" fill="#7ee787"/>
+    <text class="t-bub" x="476" y="210">evidence packed</text></g>
+
+  <!-- ===== HITL GATE (human, gold) ===== -->
+  <rect class="px" x="586" y="150" width="64" height="166" fill="none" stroke="#f0b72f" stroke-dasharray="4 4"/>
+  <text class="t-gate" x="618" y="144">HITL GATE</text>
+  <circle class="lamp" cx="618" cy="166" r="5" fill="#f0b72f"/>
+  <g class="agent d4">
+    <g class="px" transform="translate(606,236)">
+      <rect x="4"  y="2"  width="16" height="6"  fill="#21262d"/>
+      <rect x="4"  y="8"  width="16" height="14" fill="#d4a06a"/>
+      <rect x="6"  y="12" width="4"  height="4"  fill="#0d1117"/>
+      <rect x="14" y="12" width="4"  height="4"  fill="#0d1117"/>
+      <rect x="2"  y="24" width="20" height="20" fill="#f0b72f"/>
+      <rect x="9"  y="27" width="6"  height="8"  fill="#0d1117"/>
+      <rect x="2"  y="44" width="8"  height="6"  fill="#21262d"/>
+      <rect x="14" y="44" width="8"  height="6"  fill="#21262d"/>
+    </g>
+  </g>
+  <text class="t-name"  x="618" y="352">HUMAN</text>
+  <text class="t-class" x="618" y="364">FINAL SIGN-OFF</text>
+  <g class="s4"><rect x="582" y="196" width="72" height="20" rx="4" fill="#f0b72f"/>
+    <path d="M614 216l6 8 2-8z" fill="#f0b72f"/>
+    <text class="t-bub" x="618" y="210">approved ✓</text></g>
+
+  <!-- ===== DEPLOY tower ===== -->
+  <g class="px">
+    <rect x="742" y="216" width="36" height="100" fill="#161b22" stroke="#30363d"/>
+    <rect x="748" y="228" width="24" height="8" fill="#1f6feb"/>
+    <rect x="748" y="244" width="24" height="8" fill="#1f6feb"/>
+    <rect x="748" y="260" width="24" height="8" fill="#2ea043"/>
+    <rect x="748" y="276" width="24" height="8" fill="#2ea043"/>
+  </g>
+  <text class="t-name"  x="760" y="352">DEPLOY</text>
+  <text class="t-class" x="760" y="364">VALIDATED PROD</text>
+  <g class="ship">
+    <rect class="px" x="756" y="176" width="8" height="30" fill="#7ee787"/>
+    <rect class="px" x="752" y="166" width="16" height="10" fill="#3fb950"/>
+    <text class="t-hud" x="718" y="158" style="font-size:10px">SHIPPED ✓</text>
+  </g>
+
+  <!-- task token riding the pipeline -->
+  <g class="task">
+    <rect class="px" x="-8" y="-10" width="16" height="16" fill="#f0b72f" stroke="#0d1117" stroke-width="2"/>
+    <text x="0" y="2" font-size="9" font-weight="bold" text-anchor="middle" fill="#0d1117" font-family="Courier New, monospace">T</text>
+  </g>
+
+  <!-- footer -->
+  <text class="t-dim" x="14" y="390">multi-agent sdlc · crewai on sap ai core · human-in-the-loop by design</text>
+  <text class="t-dim" x="700" y="390">srijayant · pune, in</text>
+</svg>
