@@ -73,28 +73,30 @@ const cardEl = document.getElementById("card"), approveBtn = document.getElement
 const FLOOR = 330;
 
 const STATIONS = [
-  { x: 96,  name: "BACKLOG"  },
-  { x: 216, name: "PLAN"     },
-  { x: 346, name: "BUILD"    },
-  { x: 476, name: "REVIEW"   },
-  { x: 606, name: "HITL GATE"},
-  { x: 760, name: "DEPLOY"   },
+  { x: 90,  name: "BACKLOG"  },
+  { x: 205, name: "PLAN"     },
+  { x: 320, name: "BUILD"    },
+  { x: 435, name: "REVIEW"   },
+  { x: 550, name: "QA"       },
+  { x: 665, name: "HITL GATE"},
+  { x: 790, name: "DEPLOY"   },
 ];
+const GATE = 5, DONE = 6;
 
 const AGENTS = [
-  { name: "PLANNER",  cls: "LVL 13 · STRATEGIST", home: 216, color: "#8957e5", hat: "#bc8cff", accent: "#bc8cff",
+  { name: "PLANNER",  cls: "LVL 13 · STRATEGIST", home: 205, color: "#8957e5", hat: "#bc8cff", accent: "#bc8cff",
     stats: { INT: 96, SPD: 70, RIG: 88 }, quest: "Decompose the epic into governed work items.",
     lines: ["epic decomposed", "scoping sprint 42", "risk register updated"] },
-  { name: "DEV AGENT", cls: "LVL 12 · CAP/RAP",   home: 346, color: "#1f6feb", hat: "#1f6feb", accent: "#79c0ff",
+  { name: "DEV AGENT", cls: "LVL 12 · CAP/RAP",   home: 320, color: "#1f6feb", hat: "#1f6feb", accent: "#79c0ff",
     stats: { INT: 90, SPD: 92, RIG: 80 }, quest: "Generate CAP services + CDS models, green build.",
     lines: ["cds build ok", "srv deployed to dev", "unit tests green"] },
-  { name: "REVIEWER", cls: "LVL 12 · CRITIC",     home: 476, color: "#db6d28", hat: "#db6d28", accent: "#f0883e",
+  { name: "REVIEWER", cls: "LVL 12 · CRITIC",     home: 435, color: "#db6d28", hat: "#db6d28", accent: "#f0883e",
     stats: { INT: 94, SPD: 65, RIG: 97 }, quest: "Static analysis, security lint, design review.",
     lines: ["0 findings left", "xsuaa scopes ok", "no secrets in code"] },
-  { name: "QA AGENT", cls: "LVL 11 · IQ/OQ/PQ",   home: 606, color: "#2ea043", hat: "#2ea043", accent: "#7ee787",
+  { name: "QA AGENT", cls: "LVL 11 · IQ/OQ/PQ",   home: 550, color: "#2ea043", hat: "#2ea043", accent: "#7ee787",
     stats: { INT: 88, SPD: 75, RIG: 99 }, quest: "Execute validation protocol, package evidence.",
     lines: ["evidence packed", "traceability 100%", "protocol executed"] },
-  { name: "HUMAN",    cls: "FINAL SIGN-OFF",      home: 690, color: "#f0b72f", hat: "#21262d", accent: "#f0b72f",
+  { name: "HUMAN",    cls: "FINAL SIGN-OFF",      home: 665, color: "#f0b72f", hat: "#21262d", accent: "#f0b72f",
     stats: { INT: 99, SPD: 40, RIG: 100 }, quest: "Review evidence. Nothing ships without you.",
     lines: ["reviewing evidence…", "checking audit trail", "your call, operator"], human: true },
 ];
@@ -157,30 +159,30 @@ function drawScene() {
   ctx.fillStyle = "#8b949e"; ctx.font = "9px Courier New"; ctx.textAlign = "center";
   STATIONS.forEach(s => {
     px(s.x - 2, FLOOR - 4, 4, 6, "#30363d");
-    ctx.fillText(s.name, s.x, FLOOR - 60 - 14);
+    ctx.fillText(s.name, s.x, FLOOR - 110);
   });
 
   // HITL gate frame
   ctx.strokeStyle = "#f0b72f"; ctx.setLineDash([4, 4]);
-  ctx.strokeRect(STATIONS[4].x - 34, 160, 68, 168);
+  ctx.strokeRect(STATIONS[GATE].x - 34, 160, 68, 168);
   ctx.setLineDash([]);
   const gateWaiting = tasks.some(k => k.waiting);
   ctx.fillStyle = gateWaiting ? (t % 30 < 15 ? "#f0b72f" : "#4d3a08") : "#4d3a08";
-  ctx.beginPath(); ctx.arc(STATIONS[4].x, 172, 5, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(STATIONS[GATE].x, 172, 5, 0, 7); ctx.fill();
 
   // deploy tower
-  px(742, 226, 36, 100, "#161b22");
-  ctx.strokeStyle = "#30363d"; ctx.strokeRect(742, 226, 36, 100);
-  [["#1f6feb",238],["#1f6feb",254],["#2ea043",270],["#2ea043",286]].forEach(([c, y]) => px(748, y, 24, 8, c));
+  px(772, 226, 36, 100, "#161b22");
+  ctx.strokeStyle = "#30363d"; ctx.strokeRect(772, 226, 36, 100);
+  [["#1f6feb",238],["#1f6feb",254],["#2ea043",270],["#2ea043",286]].forEach(([c, y]) => px(778, y, 24, 8, c));
 
-  // tasks
+  AGENTS.forEach(drawAgent);
+
+  // tasks (drawn last so a token at a station reads as "held" by the agent)
   tasks.forEach(k => {
     px(k.x - 8, FLOOR - 24, 16, 16, k.waiting ? (t % 30 < 15 ? "#f0b72f" : "#8a6a14") : "#f0b72f");
     ctx.fillStyle = "#0d1117"; ctx.font = "bold 9px Courier New"; ctx.textAlign = "center";
     ctx.fillText("T" + k.id, k.x, FLOOR - 13);
   });
-
-  AGENTS.forEach(drawAgent);
 }
 
 function update() {
@@ -189,10 +191,10 @@ function update() {
   if (spawnT > 420 && tasks.length < 3) { spawnTask(); spawnT = 0; }
 
   tasks.forEach(k => {
-    const target = STATIONS[Math.min(k.stage, 5)].x;
+    const target = STATIONS[Math.min(k.stage, DONE)].x;
     if (Math.abs(k.x - target) > 1) { k.x += Math.sign(target - k.x) * 1.4; return; }
-    if (k.stage >= 5) { k.done = true; return; }
-    if (k.stage === 4) {
+    if (k.stage >= DONE) { k.done = true; return; }
+    if (k.stage === GATE) {
       if (!k.waiting) { k.waiting = true; say(AGENTS[4], "your call, operator"); }
       return; // holds until human clicks APPROVE
     }
@@ -216,7 +218,7 @@ function update() {
   if (w) {
     const r = cv.getBoundingClientRect(), sx = r.width / cv.width;
     approveBtn.style.display = "block";
-    approveBtn.style.left = (STATIONS[4].x * sx - 44) + "px";
+    approveBtn.style.left = (STATIONS[GATE].x * sx - 44) + "px";
     approveBtn.style.top = (120 * (r.height / cv.height)) + "px";
   } else approveBtn.style.display = "none";
 }
@@ -225,7 +227,7 @@ function say(agent, text) { agent.bubble = text; agent.bubbleT = 140; }
 
 approveBtn.addEventListener("click", () => {
   const k = tasks.find(x => x.waiting);
-  if (k) { k.waiting = false; k.stage = 5; say(AGENTS[4], "approved ✓"); }
+  if (k) { k.waiting = false; k.stage = DONE; say(AGENTS[4], "approved ✓"); }
 });
 
 cv.addEventListener("click", e => {
