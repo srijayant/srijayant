@@ -1,0 +1,11 @@
+{
+  "name": "srijayant profile README",
+  "install": "npm install",
+  "terminals": [
+    {
+      "name": "readme-preview",
+      "command": "npm run preview"
+    }
+  ],
+  "ports": [3000]
+}

@@ -5,11 +5,13 @@ Enterprise Architect — **SAP BTP**, **AI Core**, and **Agentic AI** for regula
 13+ years across SAP ABAP → BTP full-stack (CAP / RAP / Fiori). Currently lead architect on a **100+ application** BTP estate at Boston Scientific (FDA-validated landscape). M.Tech AI/ML (BITS Pilani) · SAP Certified BTP Solution Architect.
 
 ## What I build
+
 - Agentic AI on SAP AI Core (multi-agent orchestration, human-in-the-loop governance)
 - BTP platforms: CAP (Node.js), RAP/ABAP Cloud, CDS, Fiori, XSUAA
 - AI-enabled ERP / supply chain / quality automation in validated environments
 
 ## Featured work
+
 | Project | Focus |
 | --- | --- |
 | [BTP ALM Health Agent](https://github.com/srijayant/btp-alm-health-agent) | Governed agentic risk commentary for BTP estates |
@@ -24,7 +26,9 @@ Enterprise Architect — **SAP BTP**, **AI Core**, and **Agentic AI** for regula
 > Concept repos are public reference architectures. Production enterprise systems stay private / sanitized.
 
 ## Stack
+
 `SAP BTP` · `AI Core` · `CAP` · `RAP` · `CDS` · `Fiori/UI5` · `ABAP on HANA` · `CrewAI` · `Python` · `Node.js` · `HANA Cloud`
 
 ## Contact
-Pune, India · [GitHub](https://github.com/srijayant) · srijayantsingh@gmail.com
+
+Pune, India · [GitHub](https://github.com/srijayant) · [srijayantsingh@gmail.com](mailto:srijayantsingh@gmail.com)
