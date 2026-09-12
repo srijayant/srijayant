@@ -9,6 +9,10 @@ Enterprise Architect — **SAP BTP**, **AI Core**, and **Agentic AI** for regula
 - BTP platforms: CAP (Node.js), RAP/ABAP Cloud, CDS, Fiori, XSUAA
 - AI-enabled ERP / supply chain / quality automation in validated environments
 
+## Agent Party
+Game-like roster of the agentic systems above — character sheets, stats, and lore:
+**[Open Agent Party →](./agent-party/)** · [ElevenLabs art flow](https://elevenlabs.io/app/flows/GojcgT0wH0HVPmAyacLe)
+
 ## Featured work
 | Project | Focus |
 | --- | --- |

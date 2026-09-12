@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent Party — Sri Jayant</title>
+  <meta name="description" content="A game-like party roster of Sri Jayant's agentic AI systems — MedTech, SAP BTP, and governed multi-agent work." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="atmosphere" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <a class="brand" href="#party">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-text">Agent Party</span>
+    </a>
+    <p class="campaign">Campaign: Regulated MedTech · SAP BTP Estate</p>
+  </header>
+
+  <main>
+    <section class="hero" id="party" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow">Sri Jayant · Party Roster</p>
+        <h1 id="hero-title">Agent Party</h1>
+        <p class="lede">
+          Five governed agents. One FDA-aware landscape. Select a companion to open their character sheet.
+        </p>
+        <div class="cta-row">
+          <a class="btn primary" href="#roster">Enter roster</a>
+          <a class="btn ghost" href="https://github.com/srijayant" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </div>
+      <figure class="hero-art">
+        <img
+          id="party-banner"
+          src="./assets/party-banner.jpg"
+          alt="The Agent Party standing together in teal-and-copper industrial fantasy armor"
+          width="1600"
+          height="900"
+        />
+        <figcaption>Party assembled — ALM · SDLC · RAG · XSUAA · Validation</figcaption>
+      </figure>
+    </section>
+
+    <section class="roster" id="roster" aria-labelledby="roster-title">
+      <div class="section-head">
+        <h2 id="roster-title">Choose your agent</h2>
+        <p>Click a portrait to inspect stats, lore, and the live repository.</p>
+      </div>
+      <div class="party-rail" role="list" id="party-rail"></div>
+    </section>
+
+    <section class="sheet" id="sheet" aria-live="polite" hidden>
+      <article class="character-sheet">
+        <button class="close-sheet" type="button" aria-label="Close character sheet">×</button>
+        <div class="sheet-portrait">
+          <img id="sheet-img" src="" alt="" />
+          <div class="class-badge" id="sheet-class"></div>
+        </div>
+        <div class="sheet-body">
+          <p class="sheet-role" id="sheet-role"></p>
+          <h2 id="sheet-name"></h2>
+          <p class="sheet-tagline" id="sheet-tagline"></p>
+          <dl class="meta">
+            <div>
+              <dt>Level</dt>
+              <dd id="sheet-level"></dd>
+            </div>
+            <div>
+              <dt>Domain</dt>
+              <dd id="sheet-domain"></dd>
+            </div>
+            <div>
+              <dt>Affinity</dt>
+              <dd id="sheet-affinity"></dd>
+            </div>
+          </dl>
+          <div class="stats" id="sheet-stats" aria-label="Ability scores"></div>
+          <div class="abilities">
+            <h3>Signature abilities</h3>
+            <ul id="sheet-abilities"></ul>
+          </div>
+          <p class="lore" id="sheet-lore"></p>
+          <a class="btn primary" id="sheet-link" href="#" target="_blank" rel="noopener">Open repository</a>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>
+      Game representation of real agentic systems by
+      <a href="https://github.com/srijayant">Sri Jayant</a>.
+      Art on
+      <a href="https://elevenlabs.io/app/flows/GojcgT0wH0HVPmAyacLe" target="_blank" rel="noopener">ElevenLabs Flow</a>.
+    </p>
+  </footer>
+
+  <script src="./party.js"></script>
+</body>
+</html>
