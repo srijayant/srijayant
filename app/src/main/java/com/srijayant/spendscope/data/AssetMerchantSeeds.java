@@ -7,6 +7,7 @@ import com.srijayant.spendscope.domain.MerchantSeedParser;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 
 public final class AssetMerchantSeeds {
@@ -29,7 +30,13 @@ public final class AssetMerchantSeeds {
 
     private String read(String path) throws IOException {
         try (InputStream input = context.getAssets().open(path)) {
-            return new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            byte[] buffer = new byte[8_192];
+            int count;
+            while ((count = input.read(buffer)) != -1) {
+                output.write(buffer, 0, count);
+            }
+            return new String(output.toByteArray(), StandardCharsets.UTF_8);
         }
     }
 }
