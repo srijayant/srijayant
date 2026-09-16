@@ -142,10 +142,9 @@ public final class TransactionMessageParser {
                         correlatedMerchant
                 )
         );
-        if (type == TransactionType.CREDIT
-                && classification.getCategory() == ExpenseCategory.CREDIT_CARD_PAYMENT) {
-            type = TransactionType.TRANSFER_SELF;
-        } else if (classification.getCategory() == ExpenseCategory.SELF_TRANSFER) {
+        if (classification.getCategory() == ExpenseCategory.CREDIT_CARD_PAYMENT
+                || classification.getCategory() == ExpenseCategory.SELF_TRANSFER
+                || classification.getCategory() == ExpenseCategory.WALLET_TOP_UP) {
             type = TransactionType.TRANSFER_SELF;
         } else if (classification.getCategory() == ExpenseCategory.FAMILY_TRANSFER) {
             type = TransactionType.FAMILY_TRANSFER;

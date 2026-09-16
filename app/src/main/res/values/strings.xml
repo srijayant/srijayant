@@ -13,6 +13,8 @@
     <string name="review_suggestions_title">Smart category suggestions</string>
     <string name="suggestion_summary">%1$d merchants need a quick review. Suggestions use only local SMS and merchant clues.</string>
     <string name="review_suggestions">Review suggestions</string>
+    <string name="unresolved_merchants_title">Merchants to tag</string>
+    <string name="unresolved_merchant_row">%1$s · %2$d transactions · %3$s</string>
     <string name="suggestion_title">Does %1$s belong in %2$s?</string>
     <string name="suggestion_message">%1$d matching expenses totalling %2$s this month · %3$s confidence from %4$s. Confirm once to apply this bucket across every month.</string>
     <string name="confidence_high">high</string>

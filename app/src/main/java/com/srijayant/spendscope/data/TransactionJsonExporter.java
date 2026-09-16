@@ -205,6 +205,8 @@ public final class TransactionJsonExporter {
         writer.name("confidence").value(
                 transaction.getConfidence().name().toLowerCase(java.util.Locale.ROOT)
         );
+        writer.name("needsReview").value(transaction.needsReview());
+        writer.name("excludedFromSpend").value(transaction.isExcludedFromSpend());
         writer.name("duplicateSmsCount").value(transaction.getDuplicateMessages());
         writer.endObject();
     }

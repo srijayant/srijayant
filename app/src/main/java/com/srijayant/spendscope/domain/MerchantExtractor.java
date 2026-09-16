@@ -37,6 +37,12 @@ public final class MerchantExtractor {
                     + "(?:HAS BEEN|WILL BE)\\s+(?:CREDITED|PROCESSED)",
             Pattern.CASE_INSENSITIVE
     );
+    private static final Pattern CREDIT_FROM = Pattern.compile(
+            "\\bFROM\\s+(?!A/C\\b|ACCT\\b|ACCOUNT\\b)"
+                    + "([A-Z0-9][A-Z0-9 .&'@_-]{1,60}?)"
+                    + "(?=\\s+ON\\b|[.,;]|$)",
+            Pattern.CASE_INSENSITIVE
+    );
     private static final Pattern VPA = Pattern.compile(
             "\\b([A-Z0-9._-]{2,}@[A-Z0-9._-]{2,})\\b",
             Pattern.CASE_INSENSITIVE
@@ -87,6 +93,9 @@ public final class MerchantExtractor {
         }
         if (structured == null) {
             structured = find(REFUND, normalized, 1);
+        }
+        if (structured == null) {
+            structured = find(CREDIT_FROM, normalized, 1);
         }
         if (structured != null) {
             String cleaned = clean(structured);

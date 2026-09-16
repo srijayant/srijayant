@@ -12,7 +12,6 @@ import com.srijayant.spendscope.model.MonthlyReport;
 
 import org.junit.Test;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.YearMonth;
 import java.util.List;
@@ -32,8 +31,8 @@ public final class ExpenseParserTest {
         );
 
         assertTrue(result.isPresent());
-        assertEquals(new BigDecimal("1249.50"), result.get().getAmount());
-        assertEquals("Amazon", result.get().getMerchant());
+        assertEquals(124_950L, result.get().getAmountPaise());
+        assertEquals("AMAZON", result.get().getMerchant());
         assertEquals(ExpenseCategory.SHOPPING, result.get().getCategory());
     }
 
@@ -47,7 +46,7 @@ public final class ExpenseParserTest {
                 timestamp
         ).orElseThrow();
 
-        assertEquals("Thesoule", result.getMerchant());
+        assertEquals("THESOULE", result.getMerchant());
     }
 
     @Test
@@ -60,15 +59,15 @@ public final class ExpenseParserTest {
         );
 
         assertTrue(result.isPresent());
-        assertEquals(new BigDecimal("425"), result.get().getAmount());
-        assertEquals("Swiggy", result.get().getMerchant());
+        assertEquals(42_500L, result.get().getAmountPaise());
+        assertEquals("SWIGGY", result.get().getMerchant());
         assertEquals(ExpenseCategory.FOOD, result.get().getCategory());
         assertEquals(
-                ClassificationConfidence.HIGH,
+                ClassificationConfidence.MEDIUM,
                 result.get().getAutomaticClassification().getConfidence()
         );
         assertEquals(
-                ClassificationSource.KNOWN_MERCHANT,
+                ClassificationSource.REGEX_SEED,
                 result.get().getAutomaticClassification().getSource()
         );
     }
@@ -93,7 +92,7 @@ public final class ExpenseParserTest {
     }
 
     @Test
-    public void marksGenericMessageKeywordAsMediumConfidence() {
+    public void leavesUnknownMerchantForReview() {
         Expense result = parser.parse(
                 9,
                 "SBIBNK",
@@ -101,13 +100,13 @@ public final class ExpenseParserTest {
                 timestamp
         ).orElseThrow();
 
-        assertEquals(ExpenseCategory.HEALTH, result.getCategory());
+        assertEquals(ExpenseCategory.OTHER, result.getCategory());
         assertEquals(
-                ClassificationConfidence.MEDIUM,
+                ClassificationConfidence.LOW,
                 result.getAutomaticClassification().getConfidence()
         );
         assertEquals(
-                ClassificationSource.MESSAGE_KEYWORD,
+                ClassificationSource.UNKNOWN,
                 result.getAutomaticClassification().getSource()
         );
     }
@@ -127,7 +126,7 @@ public final class ExpenseParserTest {
                 result.getAutomaticClassification().getConfidence()
         );
         assertEquals(
-                ClassificationSource.TRANSACTION_TYPE,
+                ClassificationSource.PERSON_HEURISTIC,
                 result.getAutomaticClassification().getSource()
         );
     }
@@ -162,22 +161,24 @@ public final class ExpenseParserTest {
     public void monthlyReportCalculatesTotalsAndTopCategory() {
         Expense food = new Expense(
                 1,
-                new BigDecimal("300"),
+                30_000L,
                 "Cafe",
+                null,
                 ExpenseCategory.FOOD,
                 Instant.parse("2026-09-02T10:00:00Z")
         );
         Expense transport = new Expense(
                 2,
-                new BigDecimal("125"),
+                12_500L,
                 "Metro",
+                null,
                 ExpenseCategory.TRANSPORT,
                 Instant.parse("2026-09-03T10:00:00Z")
         );
         MonthlyReport report = new MonthlyReport(YearMonth.of(2026, 9), List.of(food, transport));
 
-        assertEquals(new BigDecimal("425"), report.getTotal());
-        assertEquals(new BigDecimal("212.50"), report.getAverage());
+        assertEquals(42_500L, report.getTotalPaise());
+        assertEquals(21_250L, report.getAveragePaise());
         assertEquals(ExpenseCategory.FOOD, report.getTopCategory());
         assertEquals(2, report.getTransactionCount());
         assertEquals(transport, report.getExpenses().get(0));

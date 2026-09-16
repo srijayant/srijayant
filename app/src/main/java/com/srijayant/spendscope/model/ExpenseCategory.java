@@ -29,6 +29,7 @@ public enum ExpenseCategory {
     HOME_SERVICES("Home Services"),
     VEHICLE("Vehicle"),
     PHOTO_PRINTING("Photo & Printing"),
+    STATIONERY("Stationery"),
     FAMILY_TRANSFER("Family Transfer"),
     SELF_TRANSFER("Self Transfer"),
     WALLET_TOP_UP("Wallet Top-up"),

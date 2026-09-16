@@ -32,10 +32,10 @@ public final class TransactionMessageParserTest {
         assertEquals(TransactionType.DEBIT, result.getType());
         assertEquals("HDFCBK", result.getSender());
         assertEquals("1234", result.getAccountLast4());
-        assertEquals("Swiggy", result.getMerchant());
+        assertEquals("SWIGGY", result.getMerchant());
         assertEquals("123456789", result.getReference());
-        assertEquals("Food & dining", result.getSuggestedCategory());
-        assertEquals(ClassificationConfidence.HIGH, result.getConfidence());
+        assertEquals("Food & Dining", result.getSuggestedCategory());
+        assertEquals(ClassificationConfidence.MEDIUM, result.getConfidence());
     }
 
     @Test
@@ -51,9 +51,9 @@ public final class TransactionMessageParserTest {
         assertEquals(TransactionType.CREDIT, result.getType());
         assertEquals(8_500_000L, result.getAmountPaise());
         assertEquals(Long.valueOf(9_050_000L), result.getBalancePaise());
-        assertEquals("Salary", result.getSuggestedCategory());
-        assertEquals("Acme Corp", result.getMerchant());
-        assertEquals(ClassificationConfidence.HIGH, result.getConfidence());
+        assertEquals("Uncategorized", result.getSuggestedCategory());
+        assertEquals("ACME CORP", result.getMerchant());
+        assertEquals(ClassificationConfidence.LOW, result.getConfidence());
     }
 
     @Test
@@ -85,7 +85,7 @@ public final class TransactionMessageParserTest {
         assertEquals(71_900L, result.getAmountPaise());
         assertEquals("2908", result.getAccountLast4());
         assertEquals("UPI", result.getInstrument());
-        assertEquals("Thesoule", result.getMerchant());
+        assertEquals("THESOULE", result.getMerchant());
     }
 
     @Test

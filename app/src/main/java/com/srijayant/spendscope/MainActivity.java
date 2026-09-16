@@ -411,9 +411,9 @@ public final class MainActivity extends Activity {
         }
 
         pendingSuggestions = new ArrayList<>(grouped.values());
-        pendingSuggestions.sort(Comparator.comparingDouble(group ->
-                group.suggestion.getAutomaticClassification().getConfidence().getScore()
-        ).thenComparing(Comparator.comparingInt((SuggestionGroup group) -> group.count).reversed()));
+        pendingSuggestions.sort(
+                Comparator.comparingInt((SuggestionGroup group) -> group.count).reversed()
+        );
         if (pendingSuggestions.isEmpty()) {
             reviewCard.setVisibility(View.GONE);
             return;
@@ -529,9 +529,24 @@ public final class MainActivity extends Activity {
     }
 
     private void startSuggestionReview() {
-        if (!pendingSuggestions.isEmpty()) {
-            showSuggestion(0, false);
+        if (pendingSuggestions.isEmpty()) {
+            return;
         }
+        String[] merchants = new String[pendingSuggestions.size()];
+        for (int index = 0; index < pendingSuggestions.size(); index++) {
+            SuggestionGroup group = pendingSuggestions.get(index);
+            merchants[index] = getString(
+                    R.string.unresolved_merchant_row,
+                    group.suggestion.getMerchant(),
+                    group.count,
+                    formatPaise(group.totalPaise)
+            );
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.unresolved_merchants_title)
+                .setItems(merchants, (dialog, which) -> showSuggestion(which, false))
+                .setNegativeButton(R.string.done, null)
+                .show();
     }
 
     private void showSuggestion(int index, boolean changed) {

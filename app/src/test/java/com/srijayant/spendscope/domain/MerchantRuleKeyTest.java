@@ -10,7 +10,6 @@ import com.srijayant.spendscope.model.ExpenseCategory;
 
 import org.junit.Test;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 
 public final class MerchantRuleKeyTest {
@@ -38,8 +37,9 @@ public final class MerchantRuleKeyTest {
     public void userCategoryPreservesExpenseAndMarksOverride() {
         Expense original = new Expense(
                 42,
-                new BigDecimal("799"),
+                79_900L,
                 "Merchant A",
+                null,
                 ExpenseCategory.OTHER,
                 Instant.parse("2026-09-16T10:00:00Z")
         );
@@ -47,7 +47,7 @@ public final class MerchantRuleKeyTest {
         Expense categorized = original.withUserCategory(ExpenseCategory.FOOD);
 
         assertEquals(original.getMessageId(), categorized.getMessageId());
-        assertEquals(original.getAmount(), categorized.getAmount());
+        assertEquals(original.getAmountPaise(), categorized.getAmountPaise());
         assertEquals(original.getMerchant(), categorized.getMerchant());
         assertEquals(ExpenseCategory.FOOD, categorized.getCategory());
         assertTrue(categorized.isUserCategorized());

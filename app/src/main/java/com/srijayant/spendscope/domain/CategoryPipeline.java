@@ -13,7 +13,8 @@ import java.util.regex.Pattern;
 
 public final class CategoryPipeline {
     private static final Pattern CC_PAYMENT = Pattern.compile(
-            "\\b(?:CRED\\w*|DREAMPLUG\\w*|PAYTM CREDIT CARD BILL|"
+            "\\b(?:CRED(?:CC|CLUB|PAY|PAYS)?|DREAMPLUG(?: PAYTE| TECHN)?|"
+                    + "PAYTM CREDIT CARD BILL|"
                     + "PAYMENT OF RS\\.?\\s*[\\d,.]+ HAS BEEN RECEIVED ON YOUR .* CREDIT CARD)\\b",
             Pattern.CASE_INSENSITIVE
     );
@@ -54,11 +55,6 @@ public final class CategoryPipeline {
                     + "SHREE|SAI|PVT|LTD)\\b",
             Pattern.CASE_INSENSITIVE
     );
-    private static final Pattern PERSON_NAME = Pattern.compile(
-            "^(?:MR |MRS )?[A-Z]+(?:\\s+[A-Z]+){1,2}$",
-            Pattern.CASE_INSENSITIVE
-    );
-
     private final MerchantNormalizer normalizer;
     private final MerchantSeedData seeds;
     private final RuleLookup userRules;
@@ -103,7 +99,7 @@ public final class CategoryPipeline {
 
         String body = input.getBody() == null ? "" : input.getBody();
         String messageText = (body + " " + merchant).toUpperCase(Locale.ROOT);
-        if (CC_PAYMENT.matcher(messageText).find()) {
+        if (CC_PAYMENT.matcher(messageText).find() && !REFUND.matcher(messageText).find()) {
             return result(ExpenseCategory.CREDIT_CARD_PAYMENT, ClassificationConfidence.CERTAIN,
                     ClassificationSource.MESSAGE_TYPE, false, true);
         }
@@ -137,31 +133,38 @@ public final class CategoryPipeline {
         }
 
         MerchantSeedData.Entry exact = seeds.getExact().get(key);
-        if (usableSeed(exact)) {
+        boolean genericGateway = isGenericGatewayIdentity(extraction, key, exact);
+        if (!genericGateway && usableSeed(exact)) {
             return result(exact.getCategory(), ClassificationConfidence.HIGH,
                     ClassificationSource.EXACT_SEED, false, excluded(exact.getCategory()));
         }
 
-        MerchantSeedData.Entry prefix = longestPrefix(key);
+        MerchantSeedData.Entry prefix = genericGateway ? null : longestPrefix(key);
         if (prefix != null) {
             return result(prefix.getCategory(), ClassificationConfidence.MEDIUM_HIGH,
                     ClassificationSource.PREFIX_SEED, false, excluded(prefix.getCategory()));
         }
 
         String regexText = merchant.toUpperCase(Locale.ROOT);
-        for (MerchantSeedData.RegexRule rule : seeds.getRegexRules()) {
-            if (rule.matches(regexText) || rule.matches(key)) {
-                return result(rule.getCategory(), ClassificationConfidence.MEDIUM,
-                        ClassificationSource.REGEX_SEED, false, excluded(rule.getCategory()));
+        if (!genericGateway) {
+            for (MerchantSeedData.RegexRule rule : seeds.getRegexRules()) {
+                if (rule.matches(regexText) || rule.matches(key)) {
+                    return result(rule.getCategory(), ClassificationConfidence.MEDIUM,
+                            ClassificationSource.REGEX_SEED, false, excluded(rule.getCategory()));
+                }
             }
         }
 
-        if (isGateway(extraction, messageText)) {
+        if (genericGateway || isGateway(extraction, messageText)) {
             ExpenseClassification correlation = correlated(input.getCorrelatedMerchant());
             if (correlation != null) {
                 return correlation;
             }
             return review(ExpenseCategory.OTHER);
+        }
+        if (exact != null && exact.getBucket().equals("person")) {
+            return result(ExpenseCategory.TRANSFER, ClassificationConfidence.LOW,
+                    ClassificationSource.PERSON_HEURISTIC, true, false);
         }
         if (isPerson(extraction)) {
             return result(ExpenseCategory.TRANSFER, ClassificationConfidence.LOW,
@@ -230,7 +233,7 @@ public final class CategoryPipeline {
         }
         String bucket = entry.getBucket();
         return !bucket.equals("gateway") && !bucket.equals("person")
-                && !bucket.equals("noise") && !bucket.startsWith("you_tag_");
+                && !bucket.equals("noise");
     }
 
     private Optional<ExpenseCategory> remarkCategory(String remark) {
@@ -261,6 +264,32 @@ public final class CategoryPipeline {
                 || GATEWAY.matcher(extraction.getVpa() == null ? "" : extraction.getVpa()).find();
     }
 
+    private boolean isGenericGatewayIdentity(
+            MerchantExtraction extraction,
+            String key,
+            MerchantSeedData.Entry exact
+    ) {
+        if (exact != null && exact.getBucket().equals("gateway")) {
+            return true;
+        }
+        if (extraction.getVpa() == null) {
+            return key.equals("PAYTM") || key.equals("RAZORPAY") || key.equals("GOOGLE");
+        }
+        if (extraction.getVpa().toUpperCase(Locale.ROOT).endsWith("@MAIRTEL")) {
+            return false;
+        }
+        return key.equals("PAYTM")
+                || key.equals("RAZORPAY")
+                || key.equals("GOOGLE")
+                || key.startsWith("GOOGPAYMENT")
+                || key.matches("PAY\\d+")
+                || key.startsWith("PAYBIL")
+                || key.startsWith("PAYOUTS")
+                || key.startsWith("VILPOS")
+                || key.startsWith("RAZORPAYPAYOUTS")
+                || key.startsWith("RAZORPAYBQR");
+    }
+
     private boolean isPerson(MerchantExtraction extraction) {
         String merchant = extraction.getMerchantRaw() == null
                 ? "" : extraction.getMerchantRaw().trim();
@@ -272,8 +301,7 @@ public final class CategoryPipeline {
         return extraction.isP2A()
                 || PERSONAL_VPA.matcher(vpa).matches()
                 || merchant.toUpperCase(Locale.ROOT).startsWith("MR ")
-                || merchant.toUpperCase(Locale.ROOT).startsWith("MRS ")
-                || PERSON_NAME.matcher(merchant).matches();
+                || merchant.toUpperCase(Locale.ROOT).startsWith("MRS ");
     }
 
     private boolean excluded(ExpenseCategory category) {

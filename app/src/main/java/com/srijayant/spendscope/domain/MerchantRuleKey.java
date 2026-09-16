@@ -16,8 +16,10 @@ public final class MerchantRuleKey {
             return false;
         }
         String trimmed = merchant.trim();
-        boolean looksLikeSmsSenderId = trimmed.equals(trimmed.toUpperCase(Locale.ROOT))
-                && trimmed.matches("[A-Z0-9 -]{5,16}");
+        boolean looksLikeSmsSenderId = trimmed.matches(
+                "(?i)(?:[A-Z]{2}-[A-Z0-9]{3,8}(?:-[A-Z])?|"
+                        + "HDFCBK|ICICIB|AXISBK|SBIBNK|SBIUPI)"
+        );
         return !looksLikeSmsSenderId;
     }
 
