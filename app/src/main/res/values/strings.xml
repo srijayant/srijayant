@@ -4,8 +4,10 @@
     <string name="app_tagline">Your spending, decoded</string>
     <string name="month_previous">Previous month</string>
     <string name="month_next">Next month</string>
+    <string name="previous_symbol">‹</string>
+    <string name="next_symbol">›</string>
     <string name="total_spent">TOTAL SPENT</string>
-    <string name="transactions_count">transactions</string>
+    <string name="transactions_count">%1$d transactions</string>
     <string name="average_transaction">Average</string>
     <string name="top_category">Top category</string>
     <string name="spending_breakdown">Spending breakdown</string>
@@ -14,7 +16,7 @@
     <string name="grant_access">Allow message access</string>
     <string name="permission_title">Turn messages into a monthly report</string>
     <string name="permission_description">SpendScope scans transaction alerts on this device to find expenses. Message content never leaves your phone.</string>
-    <string name="permission_denied">Message access is needed to build your report. You can enable it in Android Settings.</string>
+    <string name="permission_denied">Message access is needed to build your report.</string>
     <string name="open_settings">Open settings</string>
     <string name="loading">Reading transaction messages…</string>
     <string name="read_error">SpendScope could not read messages on this device. Check message access and try again.</string>
@@ -22,5 +24,4 @@
     <string name="empty_title">No expenses detected</string>
     <string name="empty_description">No debit or payment alerts were found for this month. Try another month or refresh after new transactions.</string>
     <string name="privacy_note">Processed privately on this device</string>
-    <string name="uncategorized">Other</string>
 </resources>

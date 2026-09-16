@@ -2,7 +2,6 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background"
     android:clipToPadding="false"
     android:fillViewport="true">
 
@@ -89,7 +88,7 @@
                 android:contentDescription="@string/month_previous"
                 android:focusable="true"
                 android:gravity="center"
-                android:text="‹"
+                android:text="@string/previous_symbol"
                 android:textColor="@color/primary"
                 android:textSize="34sp" />
 
@@ -111,7 +110,7 @@
                 android:contentDescription="@string/month_next"
                 android:focusable="true"
                 android:gravity="center"
-                android:text="›"
+                android:text="@string/next_symbol"
                 android:textColor="@color/primary"
                 android:textSize="34sp" />
         </LinearLayout>
@@ -229,6 +228,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
+                android:baselineAligned="false"
                 android:orientation="horizontal">
 
                 <LinearLayout

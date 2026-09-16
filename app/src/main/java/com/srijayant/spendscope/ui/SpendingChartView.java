@@ -30,6 +30,8 @@ public final class SpendingChartView extends View {
     private final Paint amountPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint trackPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint barPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final RectF trackBounds = new RectF();
+    private final RectF barBounds = new RectF();
     private final NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("en", "IN"));
     private List<Map.Entry<ExpenseCategory, BigDecimal>> categories = Collections.emptyList();
 
@@ -84,24 +86,24 @@ public final class SpendingChartView extends View {
             canvas.drawText(entry.getKey().getDisplayName(), left, textBaseline, labelPaint);
             canvas.drawText(currency.format(entry.getValue()), right, textBaseline, amountPaint);
 
-            RectF track = new RectF(
+            trackBounds.set(
                     barLeft,
                     centerY - barHeight / 2f,
                     barRight,
                     centerY + barHeight / 2f
             );
-            canvas.drawRoundRect(track, radius, radius, trackPaint);
+            canvas.drawRoundRect(trackBounds, radius, radius, trackPaint);
 
             float ratio = entry.getValue().divide(maximum, 4, java.math.RoundingMode.HALF_UP)
                     .floatValue();
-            RectF bar = new RectF(
+            barBounds.set(
                     barLeft,
                     centerY - barHeight / 2f,
                     barLeft + (barRight - barLeft) * ratio,
                     centerY + barHeight / 2f
             );
             barPaint.setColor(BAR_COLORS[i % BAR_COLORS.length]);
-            canvas.drawRoundRect(bar, radius, radius, barPaint);
+            canvas.drawRoundRect(barBounds, radius, radius, barPaint);
         }
     }
 

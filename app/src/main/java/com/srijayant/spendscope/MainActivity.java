@@ -102,8 +102,12 @@ public final class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (hasSmsPermission() && lastLoadedMonth == null && !loadInProgress) {
-            loadReport();
+        if (hasSmsPermission()) {
+            if (lastLoadedMonth == null && !loadInProgress) {
+                loadReport();
+            }
+        } else {
+            showPermissionPrompt(false);
         }
     }
 
@@ -216,9 +220,10 @@ public final class MainActivity extends Activity {
         emptyView.setVisibility(View.GONE);
         reportContainer.setVisibility(View.VISIBLE);
         totalAmount.setText(currency.format(report.getTotal()));
-        transactionCount.setText(
-                report.getTransactionCount() + " " + getString(R.string.transactions_count)
-        );
+        transactionCount.setText(getString(
+                R.string.transactions_count,
+                report.getTransactionCount()
+        ));
         averageAmount.setText(currency.format(report.getAverage()));
         topCategory.setText(report.getTopCategory().getDisplayName());
 
@@ -347,16 +352,19 @@ public final class MainActivity extends Activity {
         reportContainer.setVisibility(View.GONE);
         emptyView.setVisibility(View.GONE);
         permissionCard.setVisibility(View.VISIBLE);
+        permissionButton.setOnClickListener(view -> handlePermissionAction());
+        boolean requested = getSharedPreferences(PREFS, MODE_PRIVATE)
+                .getBoolean(PERMISSION_REQUESTED, false);
+        boolean canRequest = !requested
+                || shouldShowRequestPermissionRationale(Manifest.permission.READ_SMS);
         if (denied) {
             permissionTitle.setText(R.string.permission_denied);
             permissionDescription.setText(R.string.permission_description);
-            permissionButton.setText(R.string.open_settings);
+            permissionButton.setText(canRequest ? R.string.retry : R.string.open_settings);
         } else {
             permissionTitle.setText(R.string.permission_title);
             permissionDescription.setText(R.string.permission_description);
-            boolean requested = getSharedPreferences(PREFS, MODE_PRIVATE)
-                    .getBoolean(PERMISSION_REQUESTED, false);
-            permissionButton.setText(requested ? R.string.open_settings : R.string.grant_access);
+            permissionButton.setText(canRequest ? R.string.grant_access : R.string.open_settings);
         }
     }
 
