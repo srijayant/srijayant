@@ -1,7 +1,5 @@
 package com.srijayant.spendscope.model;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,8 +11,8 @@ import java.util.Map;
 public final class MonthlyReport {
     private final YearMonth month;
     private final List<Expense> expenses;
-    private final BigDecimal total;
-    private final Map<ExpenseCategory, BigDecimal> categoryTotals;
+    private final long totalPaise;
+    private final Map<ExpenseCategory, Long> categoryTotals;
 
     public MonthlyReport(YearMonth month, List<Expense> sourceExpenses) {
         this.month = month;
@@ -23,13 +21,13 @@ public final class MonthlyReport {
         sorted.sort(Comparator.comparing(Expense::getTimestamp).reversed());
         this.expenses = Collections.unmodifiableList(sorted);
 
-        EnumMap<ExpenseCategory, BigDecimal> totals = new EnumMap<>(ExpenseCategory.class);
-        BigDecimal runningTotal = BigDecimal.ZERO;
+        EnumMap<ExpenseCategory, Long> totals = new EnumMap<>(ExpenseCategory.class);
+        long runningTotal = 0L;
         for (Expense expense : sorted) {
-            runningTotal = runningTotal.add(expense.getAmount());
-            totals.merge(expense.getCategory(), expense.getAmount(), BigDecimal::add);
+            runningTotal = Math.addExact(runningTotal, expense.getAmountPaise());
+            totals.merge(expense.getCategory(), expense.getAmountPaise(), Math::addExact);
         }
-        this.total = runningTotal;
+        this.totalPaise = runningTotal;
         this.categoryTotals = Collections.unmodifiableMap(totals);
     }
 
@@ -41,34 +39,34 @@ public final class MonthlyReport {
         return expenses;
     }
 
-    public BigDecimal getTotal() {
-        return total;
+    public long getTotalPaise() {
+        return totalPaise;
     }
 
     public int getTransactionCount() {
         return expenses.size();
     }
 
-    public BigDecimal getAverage() {
+    public long getAveragePaise() {
         if (expenses.isEmpty()) {
-            return BigDecimal.ZERO;
+            return 0L;
         }
-        return total.divide(BigDecimal.valueOf(expenses.size()), 2, RoundingMode.HALF_UP);
+        return Math.round((double) totalPaise / expenses.size());
     }
 
-    public Map<ExpenseCategory, BigDecimal> getCategoryTotals() {
+    public Map<ExpenseCategory, Long> getCategoryTotals() {
         return categoryTotals;
     }
 
-    public List<Map.Entry<ExpenseCategory, BigDecimal>> getCategoriesBySpend() {
-        List<Map.Entry<ExpenseCategory, BigDecimal>> categories =
+    public List<Map.Entry<ExpenseCategory, Long>> getCategoriesBySpend() {
+        List<Map.Entry<ExpenseCategory, Long>> categories =
                 new ArrayList<>(categoryTotals.entrySet());
-        categories.sort(Map.Entry.<ExpenseCategory, BigDecimal>comparingByValue().reversed());
+        categories.sort(Map.Entry.<ExpenseCategory, Long>comparingByValue().reversed());
         return categories;
     }
 
     public ExpenseCategory getTopCategory() {
-        List<Map.Entry<ExpenseCategory, BigDecimal>> categories = getCategoriesBySpend();
+        List<Map.Entry<ExpenseCategory, Long>> categories = getCategoriesBySpend();
         return categories.isEmpty() ? ExpenseCategory.OTHER : categories.get(0).getKey();
     }
 }

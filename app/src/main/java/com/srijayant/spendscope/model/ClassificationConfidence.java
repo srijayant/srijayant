@@ -1,17 +1,19 @@
 package com.srijayant.spendscope.model;
 
 public enum ClassificationConfidence {
-    HIGH(3),
-    MEDIUM(2),
-    LOW(1);
+    CERTAIN(1.0),
+    HIGH(0.95),
+    MEDIUM_HIGH(0.85),
+    MEDIUM(0.8),
+    LOW(0.5);
 
-    private final int score;
+    private final double score;
 
-    ClassificationConfidence(int score) {
+    ClassificationConfidence(double score) {
         this.score = score;
     }
 
-    public int getScore() {
+    public double getScore() {
         return score;
     }
 }

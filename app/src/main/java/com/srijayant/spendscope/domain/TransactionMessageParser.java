@@ -1,19 +1,20 @@
 package com.srijayant.spendscope.domain;
 
 import com.srijayant.spendscope.model.ClassificationConfidence;
+import com.srijayant.spendscope.model.ClassificationSource;
 import com.srijayant.spendscope.model.DerivedTransaction;
-import com.srijayant.spendscope.model.Expense;
 import com.srijayant.spendscope.model.ExpenseCategory;
+import com.srijayant.spendscope.model.ExpenseClassification;
 import com.srijayant.spendscope.model.TransactionType;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,7 +35,8 @@ public final class TransactionMessageParser {
     private static final Pattern REJECT_SIGNAL = Pattern.compile(
             "\\b(otp|one[ -]time password|declined|failed|unsuccessful|"
                     + "could not be processed|will be debited|scheduled|upcoming|"
-                    + "mandate (?:created|approved)|payment due|amount due|credit limit)\\b",
+                    + "mandate (?:created|approved)|payment due|amount due|credit limit|"
+                    + "is due by|minimum of|nav of|invoice dated|be paid by)\\b",
             Pattern.CASE_INSENSITIVE
     );
     private static final Pattern AMOUNT = Pattern.compile(
@@ -63,7 +65,8 @@ public final class TransactionMessageParser {
     );
     private static final Pattern REFERENCE = Pattern.compile(
             "\\b(?:upi\\s*ref(?:erence)?|ref(?:erence)?\\s*(?:no\\.?|number)?|rrn|"
-                    + "txn\\s*(?:id|no\\.?))[:\\s#-]*([a-zA-Z0-9]{6,})\\b",
+                    + "txn\\s*(?:id|no\\.?))[:\\s#-]*([a-zA-Z0-9]{6,})\\b"
+                    + "|\\bUPI/(?:P2M|P2A)/([A-Z0-9]{6,})/",
             Pattern.CASE_INSENSITIVE
     );
     private static final Pattern CREDIT_MERCHANT = Pattern.compile(
@@ -79,19 +82,16 @@ public final class TransactionMessageParser {
     );
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 
-    private final ExpenseParser expenseParser;
-    private final Function<String, Optional<ExpenseCategory>> categoryRules;
+    private final MerchantExtractor merchantExtractor;
+    private final CategoryPipeline categoryPipeline;
 
     public TransactionMessageParser() {
-        this(new ExpenseParser(), merchant -> Optional.empty());
+        this(defaultPipeline());
     }
 
-    public TransactionMessageParser(
-            ExpenseParser expenseParser,
-            Function<String, Optional<ExpenseCategory>> categoryRules
-    ) {
-        this.expenseParser = expenseParser;
-        this.categoryRules = categoryRules;
+    public TransactionMessageParser(CategoryPipeline categoryPipeline) {
+        this.merchantExtractor = new MerchantExtractor();
+        this.categoryPipeline = categoryPipeline;
     }
 
     public Optional<DerivedTransaction> parse(
@@ -100,8 +100,19 @@ public final class TransactionMessageParser {
             String body,
             long timestampMillis
     ) {
+        return parse(smsId, sender, body, timestampMillis, null);
+    }
+
+    public Optional<DerivedTransaction> parse(
+            long smsId,
+            String sender,
+            String body,
+            long timestampMillis,
+            String correlatedMerchant
+    ) {
         if (body == null || body.isBlank() || timestampMillis <= 0
-                || REJECT_SIGNAL.matcher(body).find()) {
+                || REJECT_SIGNAL.matcher(body).find()
+                || merchantExtractor.rejectsMessage(body)) {
             return Optional.empty();
         }
 
@@ -120,44 +131,24 @@ public final class TransactionMessageParser {
         }
 
         String normalizedSender = normalizeSender(sender);
-        Optional<Expense> parsedExpense = expenseParser.parse(
-                smsId,
-                sender,
-                normalizedBody,
-                timestampMillis
+        MerchantExtraction extraction = merchantExtractor.extract(normalizedBody);
+        String vpa = extraction.getVpa();
+        String merchant = extraction.getMerchantRaw();
+        ExpenseClassification classification = categoryPipeline.classify(
+                new CategoryPipeline.Input(
+                        normalizedBody,
+                        type,
+                        extraction,
+                        correlatedMerchant
+                )
         );
-        String vpa = find(VPA, normalizedBody);
-        String merchant = findAndCleanUpiDescriptor(normalizedBody);
-        if (merchant == null) {
-            merchant = parsedExpense.map(Expense::getMerchant).orElse(null);
-        }
-        if (!MerchantRuleKey.isEligibleMerchant(merchant)) {
-            merchant = findAndCleanMerchant(normalizedBody);
-        }
-        if (merchant == null && vpa != null) {
-            merchant = vpa;
-        }
-
-        String category;
-        String categorySource;
-        ClassificationConfidence confidence;
-        Optional<ExpenseCategory> personalRule = merchant == null
-                ? Optional.empty()
-                : categoryRules.apply(merchant);
-        if (personalRule.isPresent()) {
-            category = personalRule.get().getDisplayName();
-            categorySource = "USER_RULE";
-            confidence = ClassificationConfidence.HIGH;
-        } else if (parsedExpense.isPresent()) {
-            category = parsedExpense.get().getAutomaticClassification()
-                    .getCategory().getDisplayName();
-            categorySource = parsedExpense.get().getAutomaticClassification()
-                    .getSource().name();
-            confidence = parsedExpense.get().getAutomaticClassification().getConfidence();
-        } else {
-            category = incomeCategory(type, normalizedBody);
-            categorySource = "TRANSACTION_TYPE";
-            confidence = incomeConfidence(type, normalizedBody);
+        if (type == TransactionType.CREDIT
+                && classification.getCategory() == ExpenseCategory.CREDIT_CARD_PAYMENT) {
+            type = TransactionType.TRANSFER_SELF;
+        } else if (classification.getCategory() == ExpenseCategory.SELF_TRANSFER) {
+            type = TransactionType.TRANSFER_SELF;
+        } else if (classification.getCategory() == ExpenseCategory.FAMILY_TRANSFER) {
+            type = TransactionType.FAMILY_TRANSFER;
         }
 
         return Optional.of(new DerivedTransaction(
@@ -170,13 +161,50 @@ public final class TransactionMessageParser {
                 detectInstrument(normalizedBody, type),
                 merchant,
                 vpa,
-                find(REFERENCE, normalizedBody),
+                findReference(normalizedBody),
                 findBalance(normalizedBody),
-                category,
-                categorySource,
-                confidence,
+                classification.getCategory().getDisplayName(),
+                classification.getSource().name(),
+                classification.getConfidence(),
+                classification.needsReview(),
+                classification.isExcludedFromSpend(),
                 MerchantRuleKey.fromMerchant(normalizedSender + "|" + normalizedBody)
         ));
+    }
+
+    private static CategoryPipeline defaultPipeline() {
+        List<MerchantSeedData.RegexRule> rules = List.of(
+                new MerchantSeedData.RegexRule(ExpenseCategory.FOOD, "SWIGGY|ZOMATO"),
+                new MerchantSeedData.RegexRule(
+                        ExpenseCategory.CLOTHING_FOOTWEAR,
+                        "THESOULE|THE SOUL|JUST ?FEM"
+                ),
+                new MerchantSeedData.RegexRule(ExpenseCategory.TRANSPORT, "PORTER|UBER|RAPIDO"),
+                new MerchantSeedData.RegexRule(ExpenseCategory.GROCERIES, "BIGBASKET|BLINKIT|ZEPTO"),
+                new MerchantSeedData.RegexRule(ExpenseCategory.FUEL, "INDIAN OIL|IOCL|HPCL|BPCL"),
+                new MerchantSeedData.RegexRule(ExpenseCategory.SHOPPING, "AMAZON|FLIPKART|MYNTRA")
+        );
+        CategoryPipeline.RuleLookup noRules = new CategoryPipeline.RuleLookup() {
+            @Override
+            public Optional<ExpenseCategory> forVpa(String vpa) {
+                return Optional.empty();
+            }
+
+            @Override
+            public Optional<ExpenseCategory> forKey(String normalizedKey) {
+                return Optional.empty();
+            }
+        };
+        return new CategoryPipeline(
+                new MerchantNormalizer(),
+                new MerchantSeedData(Collections.emptyMap(), rules),
+                noRules,
+                new IdentityRules(
+                        List.of("SRIJAYANT", "JAYANT-SRIJAYANTSINGH"),
+                        List.of("KRITIKA", "KRITIKAIT09"),
+                        true
+                )
+        );
     }
 
     private TransactionType detectType(String body) {
@@ -262,6 +290,14 @@ public final class TransactionMessageParser {
     private String find(Pattern pattern, String body) {
         Matcher matcher = pattern.matcher(body);
         return matcher.find() ? matcher.group(1) : null;
+    }
+
+    private String findReference(String body) {
+        Matcher matcher = REFERENCE.matcher(body);
+        if (!matcher.find()) {
+            return null;
+        }
+        return matcher.group(1) != null ? matcher.group(1) : matcher.group(2);
     }
 
     private String findAndCleanMerchant(String body) {

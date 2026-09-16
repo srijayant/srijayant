@@ -18,6 +18,8 @@ public final class DerivedTransaction {
     private final String suggestedCategory;
     private final String categorySource;
     private final ClassificationConfidence confidence;
+    private final boolean needsReview;
+    private final boolean excludedFromSpend;
     private final String bodyFingerprint;
     private final int duplicateMessages;
 
@@ -36,6 +38,8 @@ public final class DerivedTransaction {
             String suggestedCategory,
             String categorySource,
             ClassificationConfidence confidence,
+            boolean needsReview,
+            boolean excludedFromSpend,
             String bodyFingerprint
     ) {
         this(
@@ -53,6 +57,8 @@ public final class DerivedTransaction {
                 suggestedCategory,
                 categorySource,
                 confidence,
+                needsReview,
+                excludedFromSpend,
                 bodyFingerprint,
                 1
         );
@@ -73,6 +79,8 @@ public final class DerivedTransaction {
             String suggestedCategory,
             String categorySource,
             ClassificationConfidence confidence,
+            boolean needsReview,
+            boolean excludedFromSpend,
             String bodyFingerprint,
             int duplicateMessages
     ) {
@@ -90,6 +98,8 @@ public final class DerivedTransaction {
         this.suggestedCategory = Objects.requireNonNull(suggestedCategory);
         this.categorySource = Objects.requireNonNull(categorySource);
         this.confidence = Objects.requireNonNull(confidence);
+        this.needsReview = needsReview;
+        this.excludedFromSpend = excludedFromSpend;
         this.bodyFingerprint = Objects.requireNonNull(bodyFingerprint);
         this.duplicateMessages = duplicateMessages;
     }
@@ -150,6 +160,14 @@ public final class DerivedTransaction {
         return confidence;
     }
 
+    public boolean needsReview() {
+        return needsReview;
+    }
+
+    public boolean isExcludedFromSpend() {
+        return excludedFromSpend;
+    }
+
     public String getBodyFingerprint() {
         return bodyFingerprint;
     }
@@ -174,6 +192,8 @@ public final class DerivedTransaction {
                 suggestedCategory,
                 categorySource,
                 confidence,
+                needsReview,
+                excludedFromSpend,
                 bodyFingerprint,
                 duplicateMessages + 1
         );

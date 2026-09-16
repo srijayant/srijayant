@@ -4,5 +4,7 @@ public enum TransactionType {
     DEBIT,
     CREDIT,
     REFUND,
-    CASH_WITHDRAWAL
+    CASH_WITHDRAWAL,
+    TRANSFER_SELF,
+    FAMILY_TRANSFER
 }

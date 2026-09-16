@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.provider.Telephony;
 
 import com.srijayant.spendscope.domain.ExpenseParser;
+import com.srijayant.spendscope.domain.MerchantSeedData;
 import com.srijayant.spendscope.model.Expense;
 import com.srijayant.spendscope.model.MonthlyReport;
 
@@ -17,15 +18,18 @@ public final class SmsExpenseReader {
     private final ContentResolver contentResolver;
     private final ExpenseParser parser;
     private final CategoryRuleStore categoryRules;
+    private final MerchantSeedData seeds;
 
     public SmsExpenseReader(
             ContentResolver contentResolver,
             ExpenseParser parser,
-            CategoryRuleStore categoryRules
+            CategoryRuleStore categoryRules,
+            MerchantSeedData seeds
     ) {
         this.contentResolver = contentResolver;
         this.parser = parser;
         this.categoryRules = categoryRules;
+        this.seeds = seeds;
     }
 
     public MonthlyReport read(YearMonth month) {
@@ -45,7 +49,7 @@ public final class SmsExpenseReader {
                 Long.toString(endMillis)
         };
 
-        List<Expense> expenses = new ArrayList<>();
+        List<SmsMessage> messages = new ArrayList<>();
         try (Cursor cursor = contentResolver.query(
                 Telephony.Sms.CONTENT_URI,
                 projection,
@@ -54,7 +58,7 @@ public final class SmsExpenseReader {
                 Telephony.Sms.DATE + " DESC"
         )) {
             if (cursor == null) {
-                return new MonthlyReport(month, expenses);
+                return new MonthlyReport(month, new ArrayList<>());
             }
 
             int idColumn = cursor.getColumnIndexOrThrow(Telephony.Sms._ID);
@@ -63,15 +67,57 @@ public final class SmsExpenseReader {
             int dateColumn = cursor.getColumnIndexOrThrow(Telephony.Sms.DATE);
 
             while (cursor.moveToNext()) {
-                parser.parse(
+                messages.add(new SmsMessage(
                         cursor.getLong(idColumn),
                         cursor.getString(addressColumn),
                         cursor.getString(bodyColumn),
                         cursor.getLong(dateColumn)
-                ).map(categoryRules::apply).ifPresent(expenses::add);
+                ));
             }
         }
 
+        List<Expense> expenses = new ArrayList<>();
+        for (SmsMessage message : messages) {
+            parser.parse(
+                    message.id,
+                    message.sender,
+                    message.body,
+                    message.timestamp,
+                    correlatedMerchant(message, messages)
+            ).map(categoryRules::apply)
+                    .filter(expense -> !expense.isExcludedFromSpend())
+                    .ifPresent(expenses::add);
+        }
         return new MonthlyReport(month, expenses);
+    }
+
+    private String correlatedMerchant(SmsMessage source, List<SmsMessage> messages) {
+        for (SmsMessage candidate : messages) {
+            if (candidate.id == source.id
+                    || Math.abs(candidate.timestamp - source.timestamp) > 10 * 60 * 1000L) {
+                continue;
+            }
+            String body = candidate.body == null ? "" : candidate.body;
+            for (MerchantSeedData.RegexRule rule : seeds.getRegexRules()) {
+                if (rule.matches(body)) {
+                    return body;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static final class SmsMessage {
+        private final long id;
+        private final String sender;
+        private final String body;
+        private final long timestamp;
+
+        private SmsMessage(long id, String sender, String body, long timestamp) {
+            this.id = id;
+            this.sender = sender;
+            this.body = body;
+            this.timestamp = timestamp;
+        }
     }
 }
