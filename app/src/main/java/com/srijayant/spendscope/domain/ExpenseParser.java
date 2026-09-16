@@ -2,6 +2,9 @@ package com.srijayant.spendscope.domain;
 
 import com.srijayant.spendscope.model.Expense;
 import com.srijayant.spendscope.model.ExpenseCategory;
+import com.srijayant.spendscope.model.ExpenseClassification;
+import com.srijayant.spendscope.model.ClassificationConfidence;
+import com.srijayant.spendscope.model.ClassificationSource;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -68,12 +71,12 @@ public final class ExpenseParser {
         }
 
         String merchant = extractMerchant(normalized, sender);
-        ExpenseCategory category = categorize(normalized + " " + merchant);
+        ExpenseClassification classification = categorize(normalized + " " + merchant);
         return Optional.of(new Expense(
                 messageId,
                 amount,
                 merchant,
-                category,
+                classification,
                 Instant.ofEpochMilli(timestampMillis)
         ));
     }
@@ -120,63 +123,126 @@ public final class ExpenseParser {
         return cleaned;
     }
 
-    private ExpenseCategory categorize(String text) {
+    private ExpenseClassification categorize(String text) {
         String value = text.toLowerCase(Locale.ROOT);
         if (containsAny(value, "atm", "cash withdrawal", "withdrawn")) {
-            return ExpenseCategory.CASH;
+            return classified(
+                    ExpenseCategory.CASH,
+                    ClassificationConfidence.HIGH,
+                    ClassificationSource.TRANSACTION_TYPE
+            );
         }
-        if (containsAny(value, "grocery", "groceries", "supermarket", "bigbasket",
-                "blinkit", "zepto", "dmart", "jiomart", "more retail")) {
-            return ExpenseCategory.GROCERIES;
+        if (containsAny(value, "bigbasket", "blinkit", "zepto", "dmart", "jiomart",
+                "more retail")) {
+            return knownMerchant(ExpenseCategory.GROCERIES);
         }
-        if (containsAny(value, "swiggy", "zomato", "restaurant", "cafe", "coffee",
-                "food", "bakery", "dhaba", "biryani")) {
-            return ExpenseCategory.FOOD;
+        if (containsAny(value, "grocery", "groceries", "supermarket")) {
+            return messageKeyword(ExpenseCategory.GROCERIES);
         }
-        if (containsAny(value, "fuel", "petrol", "diesel", "iocl", "hpcl", "bpcl",
-                "indian oil", "hindustan petroleum", "bharat petroleum", "fastag")) {
-            return ExpenseCategory.FUEL;
+        if (containsAny(value, "swiggy", "zomato")) {
+            return knownMerchant(ExpenseCategory.FOOD);
         }
-        if (containsAny(value, "irctc", "railway", "airline", "flight", "hotel",
-                "makemytrip", "cleartrip", "goibibo", "yatra", "airbnb", "redbus")) {
-            return ExpenseCategory.TRAVEL;
+        if (containsAny(value, "restaurant", "cafe", "coffee", "food", "bakery",
+                "dhaba", "biryani")) {
+            return messageKeyword(ExpenseCategory.FOOD);
         }
-        if (containsAny(value, "uber", "ola", "rapido", "metro", "cab", "auto fare",
-                "namma yatri")) {
-            return ExpenseCategory.TRANSPORT;
+        if (containsAny(value, "iocl", "hpcl", "bpcl", "indian oil",
+                "hindustan petroleum", "bharat petroleum")) {
+            return knownMerchant(ExpenseCategory.FUEL);
         }
-        if (containsAny(value, "amazon", "flipkart", "myntra", "shopping", "retail",
-                "store", "mall", "meesho", "ajio")) {
-            return ExpenseCategory.SHOPPING;
+        if (containsAny(value, "fuel", "petrol", "diesel", "fastag")) {
+            return messageKeyword(ExpenseCategory.FUEL);
+        }
+        if (containsAny(value, "irctc", "makemytrip", "cleartrip", "goibibo", "yatra",
+                "airbnb", "redbus")) {
+            return knownMerchant(ExpenseCategory.TRAVEL);
+        }
+        if (containsAny(value, "railway", "airline", "flight", "hotel")) {
+            return messageKeyword(ExpenseCategory.TRAVEL);
+        }
+        if (containsAny(value, "uber", "ola", "rapido", "namma yatri")) {
+            return knownMerchant(ExpenseCategory.TRANSPORT);
+        }
+        if (containsAny(value, "metro", "cab", "auto fare")) {
+            return messageKeyword(ExpenseCategory.TRANSPORT);
+        }
+        if (containsAny(value, "amazon", "flipkart", "myntra", "meesho", "ajio")) {
+            return knownMerchant(ExpenseCategory.SHOPPING);
+        }
+        if (containsAny(value, "shopping", "retail", "store", "mall")) {
+            return messageKeyword(ExpenseCategory.SHOPPING);
         }
         if (containsAny(value, "house rent", "monthly rent", "rent payment")) {
-            return ExpenseCategory.RENT;
+            return messageKeyword(ExpenseCategory.RENT);
         }
-        if (containsAny(value, " emi ", "loan repayment", "loan payment", "home loan",
-                "personal loan", "vehicle loan")) {
-            return ExpenseCategory.EMI;
+        if (containsAny(value, " emi ", "emi payment", "emi debit", "loan repayment",
+                "loan payment", "home loan", "personal loan", "vehicle loan")) {
+            return messageKeyword(ExpenseCategory.EMI);
+        }
+        if (containsAny(value, "bescom", "mseb", "tata power")) {
+            return knownMerchant(ExpenseCategory.BILLS);
         }
         if (containsAny(value, "electricity", "broadband", "recharge", "utility",
-                "insurance", "postpaid", "water bill", "gas bill", "mobile bill",
-                "dth", "bescom", "mseb", "tata power")) {
-            return ExpenseCategory.BILLS;
+                "insurance", "postpaid", "water bill", "gas bill", "mobile bill", "dth")) {
+            return messageKeyword(ExpenseCategory.BILLS);
+        }
+        if (containsAny(value, "apollo", "medplus")) {
+            return knownMerchant(ExpenseCategory.HEALTH);
         }
         if (containsAny(value, "hospital", "pharmacy", "medical", "clinic", "doctor",
-                "health", "apollo", "medplus")) {
-            return ExpenseCategory.HEALTH;
+                "health")) {
+            return messageKeyword(ExpenseCategory.HEALTH);
         }
-        if (containsAny(value, "netflix", "spotify", "cinema", "movie", "gaming",
-                "bookmyshow", "hotstar", "prime video")) {
-            return ExpenseCategory.ENTERTAINMENT;
+        if (containsAny(value, "netflix", "spotify", "bookmyshow", "hotstar",
+                "prime video")) {
+            return knownMerchant(ExpenseCategory.ENTERTAINMENT);
         }
-        if (containsAny(value, "school", "college", "tuition", "course", "udemy",
-                "education", "exam fee", "books")) {
-            return ExpenseCategory.EDUCATION;
+        if (containsAny(value, "cinema", "movie", "gaming")) {
+            return messageKeyword(ExpenseCategory.ENTERTAINMENT);
+        }
+        if (containsAny(value, "udemy")) {
+            return knownMerchant(ExpenseCategory.EDUCATION);
+        }
+        if (containsAny(value, "school", "college", "tuition", "course", "education",
+                "exam fee", "books")) {
+            return messageKeyword(ExpenseCategory.EDUCATION);
         }
         if (containsAny(value, "upi", "imps", "neft", "transferred", "sent to")) {
-            return ExpenseCategory.TRANSFER;
+            return classified(
+                    ExpenseCategory.TRANSFER,
+                    ClassificationConfidence.LOW,
+                    ClassificationSource.TRANSACTION_TYPE
+            );
         }
-        return ExpenseCategory.OTHER;
+        return classified(
+                ExpenseCategory.OTHER,
+                ClassificationConfidence.LOW,
+                ClassificationSource.UNKNOWN
+        );
+    }
+
+    private ExpenseClassification knownMerchant(ExpenseCategory category) {
+        return classified(
+                category,
+                ClassificationConfidence.HIGH,
+                ClassificationSource.KNOWN_MERCHANT
+        );
+    }
+
+    private ExpenseClassification messageKeyword(ExpenseCategory category) {
+        return classified(
+                category,
+                ClassificationConfidence.MEDIUM,
+                ClassificationSource.MESSAGE_KEYWORD
+        );
+    }
+
+    private ExpenseClassification classified(
+            ExpenseCategory category,
+            ClassificationConfidence confidence,
+            ClassificationSource source
+    ) {
+        return new ExpenseClassification(category, confidence, source);
     }
 
     private boolean containsAny(String text, String... terms) {

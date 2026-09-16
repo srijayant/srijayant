@@ -9,6 +9,7 @@ public final class Expense {
     private final BigDecimal amount;
     private final String merchant;
     private final ExpenseCategory category;
+    private final ExpenseClassification automaticClassification;
     private final Instant timestamp;
     private final boolean userCategorized;
 
@@ -19,13 +20,44 @@ public final class Expense {
             ExpenseCategory category,
             Instant timestamp
     ) {
-        this(messageId, amount, merchant, category, timestamp, false);
+        this(
+                messageId,
+                amount,
+                merchant,
+                new ExpenseClassification(
+                        category,
+                        ClassificationConfidence.LOW,
+                        ClassificationSource.UNKNOWN
+                ),
+                category,
+                timestamp,
+                false
+        );
+    }
+
+    public Expense(
+            long messageId,
+            BigDecimal amount,
+            String merchant,
+            ExpenseClassification automaticClassification,
+            Instant timestamp
+    ) {
+        this(
+                messageId,
+                amount,
+                merchant,
+                automaticClassification,
+                automaticClassification.getCategory(),
+                timestamp,
+                false
+        );
     }
 
     private Expense(
             long messageId,
             BigDecimal amount,
             String merchant,
+            ExpenseClassification automaticClassification,
             ExpenseCategory category,
             Instant timestamp,
             boolean userCategorized
@@ -33,6 +65,7 @@ public final class Expense {
         this.messageId = messageId;
         this.amount = Objects.requireNonNull(amount);
         this.merchant = Objects.requireNonNull(merchant);
+        this.automaticClassification = Objects.requireNonNull(automaticClassification);
         this.category = Objects.requireNonNull(category);
         this.timestamp = Objects.requireNonNull(timestamp);
         this.userCategorized = userCategorized;
@@ -54,6 +87,10 @@ public final class Expense {
         return category;
     }
 
+    public ExpenseClassification getAutomaticClassification() {
+        return automaticClassification;
+    }
+
     public Instant getTimestamp() {
         return timestamp;
     }
@@ -67,6 +104,7 @@ public final class Expense {
                 messageId,
                 amount,
                 merchant,
+                automaticClassification,
                 userCategory,
                 timestamp,
                 true

@@ -26,6 +26,9 @@ public final class CategoryRuleStore {
     }
 
     public Optional<ExpenseCategory> getCategory(String merchant) {
+        if (!MerchantRuleKey.isEligibleMerchant(merchant)) {
+            return Optional.empty();
+        }
         String value = preferences.getString(key(merchant), null);
         if (value == null) {
             return Optional.empty();
@@ -39,11 +42,15 @@ public final class CategoryRuleStore {
     }
 
     public void setCategory(String merchant, ExpenseCategory category) {
-        preferences.edit().putString(key(merchant), category.name()).apply();
+        if (MerchantRuleKey.isEligibleMerchant(merchant)) {
+            preferences.edit().putString(key(merchant), category.name()).apply();
+        }
     }
 
     public void removeCategory(String merchant) {
-        preferences.edit().remove(key(merchant)).apply();
+        if (MerchantRuleKey.isEligibleMerchant(merchant)) {
+            preferences.edit().remove(key(merchant)).apply();
+        }
     }
 
     private String key(String merchant) {

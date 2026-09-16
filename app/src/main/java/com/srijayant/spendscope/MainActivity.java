@@ -14,10 +14,14 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.srijayant.spendscope.data.CategoryRuleStore;
 import com.srijayant.spendscope.data.SmsExpenseReader;
 import com.srijayant.spendscope.domain.ExpenseParser;
+import com.srijayant.spendscope.domain.MerchantRuleKey;
+import com.srijayant.spendscope.model.ClassificationConfidence;
+import com.srijayant.spendscope.model.ClassificationSource;
 import com.srijayant.spendscope.model.Expense;
 import com.srijayant.spendscope.model.ExpenseCategory;
 import com.srijayant.spendscope.model.MonthlyReport;
@@ -30,6 +34,9 @@ import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -78,6 +85,9 @@ public final class MainActivity extends Activity {
     private SpendingChartView spendingChart;
     private LinearLayout categoryContainer;
     private LinearLayout transactionContainer;
+    private View reviewCard;
+    private TextView suggestionSummary;
+    private List<SuggestionGroup> pendingSuggestions = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -97,6 +107,8 @@ public final class MainActivity extends Activity {
         findViewById(R.id.previousMonthButton).setOnClickListener(view -> changeMonth(-1));
         nextMonthButton.setOnClickListener(view -> changeMonth(1));
         findViewById(R.id.refreshButton).setOnClickListener(view -> refresh());
+        findViewById(R.id.reviewSuggestionsButton)
+                .setOnClickListener(view -> startSuggestionReview());
         permissionButton.setOnClickListener(view -> handlePermissionAction());
 
         updateMonthControls();
@@ -158,6 +170,8 @@ public final class MainActivity extends Activity {
         spendingChart = findViewById(R.id.spendingChart);
         categoryContainer = findViewById(R.id.categoryContainer);
         transactionContainer = findViewById(R.id.transactionContainer);
+        reviewCard = findViewById(R.id.reviewCard);
+        suggestionSummary = findViewById(R.id.suggestionSummary);
     }
 
     private void changeMonth(int offset) {
@@ -237,8 +251,40 @@ public final class MainActivity extends Activity {
 
         List<Map.Entry<ExpenseCategory, BigDecimal>> categories = report.getCategoriesBySpend();
         spendingChart.setData(categories);
+        renderSuggestionReview(report.getExpenses());
         renderCategories(categories, report.getTotal());
         renderTransactions(report.getExpenses());
+    }
+
+    private void renderSuggestionReview(List<Expense> expenses) {
+        Map<String, SuggestionGroup> grouped = new LinkedHashMap<>();
+        for (Expense expense : expenses) {
+            if (expense.isUserCategorized()
+                    || !MerchantRuleKey.isEligibleMerchant(expense.getMerchant())) {
+                continue;
+            }
+            String key = MerchantRuleKey.fromMerchant(expense.getMerchant());
+            SuggestionGroup group = grouped.get(key);
+            if (group == null) {
+                grouped.put(key, new SuggestionGroup(expense));
+            } else {
+                group.add(expense);
+            }
+        }
+
+        pendingSuggestions = new ArrayList<>(grouped.values());
+        pendingSuggestions.sort(Comparator.comparingInt(group ->
+                group.suggestion.getAutomaticClassification().getConfidence().getScore()
+        ));
+        if (pendingSuggestions.isEmpty()) {
+            reviewCard.setVisibility(View.GONE);
+            return;
+        }
+        reviewCard.setVisibility(View.VISIBLE);
+        suggestionSummary.setText(getString(
+                R.string.suggestion_summary,
+                pendingSuggestions.size()
+        ));
     }
 
     private void renderCategories(
@@ -311,9 +357,14 @@ public final class MainActivity extends Activity {
             merchant.setEllipsize(android.text.TextUtils.TruncateAt.END);
             details.addView(merchant);
             String ruleLabel = expense.isUserCategorized()
-                    ? " · " + getString(R.string.personal_rule)
-                    : "";
-            String metadata = expense.getCategory().getDisplayName() + ruleLabel + " · "
+                    ? getString(R.string.personal_rule)
+                    : getString(
+                            R.string.suggested_rule,
+                            confidenceLabel(
+                                    expense.getAutomaticClassification().getConfidence()
+                            )
+                    );
+            String metadata = expense.getCategory().getDisplayName() + " · " + ruleLabel + " · "
                     + expense.getTimestamp()
                     .atZone(ZoneId.systemDefault())
                     .format(transactionDateFormatter);
@@ -336,7 +387,107 @@ public final class MainActivity extends Activity {
         }
     }
 
+    private void startSuggestionReview() {
+        if (!pendingSuggestions.isEmpty()) {
+            showSuggestion(0, false);
+        }
+    }
+
+    private void showSuggestion(int index, boolean changed) {
+        if (index >= pendingSuggestions.size()) {
+            if (changed) {
+                lastLoadedMonth = null;
+                loadReport();
+            }
+            return;
+        }
+
+        SuggestionGroup group = pendingSuggestions.get(index);
+        Expense suggestion = group.suggestion;
+        ExpenseCategory suggestedCategory =
+                suggestion.getAutomaticClassification().getCategory();
+        ExpenseCategory[] categories = ExpenseCategory.values();
+        String[] options = new String[categories.length];
+        for (int i = 0; i < categories.length; i++) {
+            options[i] = categories[i].getDisplayName();
+        }
+        int[] selected = {suggestedCategory.ordinal()};
+
+        new AlertDialog.Builder(this)
+                .setTitle(getString(
+                        R.string.suggestion_title,
+                        suggestion.getMerchant(),
+                        suggestedCategory.getDisplayName()
+                ))
+                .setMessage(getString(
+                        R.string.suggestion_message,
+                        group.count,
+                        confidenceLabel(
+                                suggestion.getAutomaticClassification().getConfidence()
+                        ),
+                        sourceLabel(suggestion.getAutomaticClassification().getSource())
+                ))
+                .setSingleChoiceItems(options, selected[0], (dialog, which) -> selected[0] = which)
+                .setNegativeButton(R.string.done, (dialog, which) -> {
+                    if (changed) {
+                        lastLoadedMonth = null;
+                        loadReport();
+                    }
+                })
+                .setNeutralButton(R.string.skip, (dialog, which) ->
+                        showSuggestion(index + 1, changed)
+                )
+                .setPositiveButton(R.string.confirm_next, (dialog, which) -> {
+                    categoryRules.setCategory(
+                            suggestion.getMerchant(),
+                            categories[selected[0]]
+                    );
+                    showSuggestion(index + 1, true);
+                })
+                .setOnCancelListener(dialog -> {
+                    if (changed) {
+                        lastLoadedMonth = null;
+                        loadReport();
+                    }
+                })
+                .show();
+    }
+
+    private String confidenceLabel(ClassificationConfidence confidence) {
+        switch (confidence) {
+            case HIGH:
+                return getString(R.string.confidence_high);
+            case MEDIUM:
+                return getString(R.string.confidence_medium);
+            case LOW:
+            default:
+                return getString(R.string.confidence_low);
+        }
+    }
+
+    private String sourceLabel(ClassificationSource source) {
+        switch (source) {
+            case KNOWN_MERCHANT:
+                return getString(R.string.source_known_merchant);
+            case MESSAGE_KEYWORD:
+                return getString(R.string.source_message_keyword);
+            case TRANSACTION_TYPE:
+                return getString(R.string.source_transaction_type);
+            case UNKNOWN:
+            default:
+                return getString(R.string.source_unknown);
+        }
+    }
+
     private void showCategoryDialog(Expense expense) {
+        if (!MerchantRuleKey.isEligibleMerchant(expense.getMerchant())) {
+            Toast.makeText(
+                    this,
+                    R.string.merchant_not_detected,
+                    Toast.LENGTH_LONG
+            ).show();
+            return;
+        }
         ExpenseCategory[] categories = ExpenseCategory.values();
         String[] options = new String[categories.length + 1];
         options[0] = getString(R.string.automatic_category);
@@ -436,6 +587,23 @@ public final class MainActivity extends Activity {
     private boolean hasSmsPermission() {
         return checkSelfPermission(Manifest.permission.READ_SMS)
                 == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private static final class SuggestionGroup {
+        private Expense suggestion;
+        private int count = 1;
+
+        private SuggestionGroup(Expense firstExpense) {
+            suggestion = firstExpense;
+        }
+
+        private void add(Expense expense) {
+            count++;
+            if (expense.getAutomaticClassification().getConfidence().getScore()
+                    > suggestion.getAutomaticClassification().getConfidence().getScore()) {
+                suggestion = expense;
+            }
+        }
     }
 
     private int dp(int value) {

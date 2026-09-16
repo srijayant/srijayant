@@ -8,6 +8,8 @@ SpendScope is an Android app that privately scans SMS transaction alerts, detect
 - Recognizes common INR debit, card, ATM, and UPI transaction alerts
 - Separates incoming credits, refunds, and unrelated messages
 - Reports monthly total, average transaction, top category, category breakdown, and recent expenses
+- Suggests categories locally with high, medium, or low confidence from Indian merchant and SMS clues
+- Groups suggestions by merchant so you can confirm or change many matching expenses once
 - Lets you assign a merchant to an Indian-context bucket and applies that choice to every matching expense
 - Lets you move between months and refresh on demand
 - Processes everything on-device; there is no internet permission, analytics, account, or cloud storage
@@ -28,7 +30,7 @@ Install the debug APK from `app/build/outputs/apk/debug/app-debug.apk` on an And
 
 ## Detection notes
 
-Expense detection is heuristic because bank SMS formats differ. The parser looks for debit/payment language, extracts the first INR amount, derives a merchant where possible, and maps Indian merchant keywords to a category. Tap an expense to create a personal merchant rule; the selected category is then applied to all matching transactions in every month.
+Expense detection is heuristic because bank SMS formats differ. The offline classifier looks for debit/payment language, extracts the first INR amount, derives a merchant where possible, and combines known Indian merchant matches, message keywords, and transaction types into a category suggestion with a confidence level. The review flow groups matching merchants, lets you confirm or change each suggestion, and then applies that personal rule to every month.
 
 Personal rules store only a SHA-256 merchant fingerprint and category in the app's private preferences. SMS bodies, amounts, and reports are not persisted.
 

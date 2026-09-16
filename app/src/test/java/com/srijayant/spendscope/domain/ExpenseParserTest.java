@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.srijayant.spendscope.model.ClassificationConfidence;
+import com.srijayant.spendscope.model.ClassificationSource;
 import com.srijayant.spendscope.model.Expense;
 import com.srijayant.spendscope.model.ExpenseCategory;
 import com.srijayant.spendscope.model.MonthlyReport;
@@ -48,6 +50,14 @@ public final class ExpenseParserTest {
         assertEquals(new BigDecimal("425"), result.get().getAmount());
         assertEquals("Swiggy", result.get().getMerchant());
         assertEquals(ExpenseCategory.FOOD, result.get().getCategory());
+        assertEquals(
+                ClassificationConfidence.HIGH,
+                result.get().getAutomaticClassification().getConfidence()
+        );
+        assertEquals(
+                ClassificationSource.KNOWN_MERCHANT,
+                result.get().getAutomaticClassification().getSource()
+        );
     }
 
     @Test
@@ -70,6 +80,26 @@ public final class ExpenseParserTest {
     }
 
     @Test
+    public void marksGenericMessageKeywordAsMediumConfidence() {
+        Expense result = parser.parse(
+                9,
+                "SBIBNK",
+                "INR 1,500 paid to LOCAL PHARMACY using your card",
+                timestamp
+        ).orElseThrow();
+
+        assertEquals(ExpenseCategory.HEALTH, result.getCategory());
+        assertEquals(
+                ClassificationConfidence.MEDIUM,
+                result.getAutomaticClassification().getConfidence()
+        );
+        assertEquals(
+                ClassificationSource.MESSAGE_KEYWORD,
+                result.getAutomaticClassification().getSource()
+        );
+    }
+
+    @Test
     public void extractsIndianUpiVpaForConsistentRules() {
         Expense result = parser.parse(
                 8,
@@ -79,6 +109,14 @@ public final class ExpenseParserTest {
         ).orElseThrow();
 
         assertEquals("lunchbox@okhdfcbank", result.getMerchant());
+        assertEquals(
+                ClassificationConfidence.LOW,
+                result.getAutomaticClassification().getConfidence()
+        );
+        assertEquals(
+                ClassificationSource.TRANSACTION_TYPE,
+                result.getAutomaticClassification().getSource()
+        );
     }
 
     @Test

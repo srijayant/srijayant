@@ -10,6 +10,17 @@ public final class MerchantRuleKey {
     private MerchantRuleKey() {
     }
 
+    public static boolean isEligibleMerchant(String merchant) {
+        if (merchant == null || merchant.isBlank()
+                || merchant.equalsIgnoreCase("Transaction alert")) {
+            return false;
+        }
+        String trimmed = merchant.trim();
+        boolean looksLikeSmsSenderId = trimmed.equals(trimmed.toUpperCase(Locale.ROOT))
+                && trimmed.matches("[A-Z0-9 -]{5,16}");
+        return !looksLikeSmsSenderId;
+    }
+
     public static String fromMerchant(String merchant) {
         String normalized = Normalizer.normalize(
                         merchant == null ? "" : merchant,

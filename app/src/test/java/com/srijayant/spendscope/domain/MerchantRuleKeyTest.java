@@ -26,6 +26,15 @@ public final class MerchantRuleKeyTest {
     }
 
     @Test
+    public void excludesGenericAlertAndBankSenderIdsFromReusableRules() {
+        assertFalse(MerchantRuleKey.isEligibleMerchant("Transaction alert"));
+        assertFalse(MerchantRuleKey.isEligibleMerchant("HDFCBK"));
+        assertFalse(MerchantRuleKey.isEligibleMerchant("VM-ICICIB"));
+        assertTrue(MerchantRuleKey.isEligibleMerchant("Swiggy"));
+        assertTrue(MerchantRuleKey.isEligibleMerchant("lunchbox@okhdfcbank"));
+    }
+
+    @Test
     public void userCategoryPreservesExpenseAndMarksOverride() {
         Expense original = new Expense(
                 42,
