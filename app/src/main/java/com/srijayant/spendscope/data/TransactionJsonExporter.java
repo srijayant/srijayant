@@ -128,6 +128,7 @@ public final class TransactionJsonExporter {
         );
         writer.name("instrument").value(transaction.getInstrument());
         writeNullable(writer, "accountLast4", transaction.getAccountLast4());
+        writeNullable(writer, "merchant", transaction.getMerchant());
         writeNullable(writer, "merchantOrPayee", transaction.getMerchant());
         writeNullable(writer, "vpa", transaction.getVpa());
         writeNullable(writer, "reference", transaction.getReference());

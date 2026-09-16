@@ -38,6 +38,19 @@ public final class ExpenseParserTest {
     }
 
     @Test
+    public void extractsMaskedUpiDescriptorMerchantForRules() {
+        Expense result = parser.parse(
+                10,
+                "ICICIB",
+                "Credit Card XX2908 debited for INR 719.00 on 12-Sep-26 "
+                        + "for UPI-62********86-THESOULE. To dispute contact the bank.",
+                timestamp
+        ).orElseThrow();
+
+        assertEquals("Thesoule", result.getMerchant());
+    }
+
+    @Test
     public void parsesUpiPaymentAndCategorizesFood() {
         Optional<Expense> result = parser.parse(
                 2,

@@ -72,6 +72,23 @@ public final class TransactionMessageParserTest {
     }
 
     @Test
+    public void extractsMerchantFromMaskedIciciUpiDescriptor() {
+        DerivedTransaction result = parser.parse(
+                10,
+                "ICICIB",
+                "ICICI Bank Credit Card XX2908 debited for INR 719.00 on 12-Sep-26 "
+                        + "for UPI-62********86-THESOULE. To dispute contact the bank.",
+                timestamp
+        ).orElseThrow();
+
+        assertEquals(TransactionType.DEBIT, result.getType());
+        assertEquals(71_900L, result.getAmountPaise());
+        assertEquals("2908", result.getAccountLast4());
+        assertEquals("UPI", result.getInstrument());
+        assertEquals("Thesoule", result.getMerchant());
+    }
+
+    @Test
     public void rejectsOtpFailedAndNonTransactionMessages() {
         assertFalse(parser.parse(
                 4,

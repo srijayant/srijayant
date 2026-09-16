@@ -55,6 +55,12 @@ public final class TransactionMessageParser {
     private static final Pattern VPA = Pattern.compile(
             "\\b([a-zA-Z0-9._-]{2,}@[a-zA-Z0-9._-]{2,})\\b"
     );
+    private static final Pattern UPI_DESCRIPTOR_MERCHANT = Pattern.compile(
+            "\\bupi[-/]\\s*[a-z0-9*]{4,}[-/]\\s*"
+                    + "([a-z][a-z0-9 .&'_-]{1,49}?)"
+                    + "(?=\\s*(?:[.,;]|$|\\bto\\s+dispute\\b))",
+            Pattern.CASE_INSENSITIVE
+    );
     private static final Pattern REFERENCE = Pattern.compile(
             "\\b(?:upi\\s*ref(?:erence)?|ref(?:erence)?\\s*(?:no\\.?|number)?|rrn|"
                     + "txn\\s*(?:id|no\\.?))[:\\s#-]*([a-zA-Z0-9]{6,})\\b",
@@ -121,7 +127,10 @@ public final class TransactionMessageParser {
                 timestampMillis
         );
         String vpa = find(VPA, normalizedBody);
-        String merchant = parsedExpense.map(Expense::getMerchant).orElse(null);
+        String merchant = findAndCleanUpiDescriptor(normalizedBody);
+        if (merchant == null) {
+            merchant = parsedExpense.map(Expense::getMerchant).orElse(null);
+        }
         if (!MerchantRuleKey.isEligibleMerchant(merchant)) {
             merchant = findAndCleanMerchant(normalizedBody);
         }
@@ -260,7 +269,16 @@ public final class TransactionMessageParser {
         if (!matcher.find()) {
             return null;
         }
-        String value = WHITESPACE.matcher(matcher.group(1)).replaceAll(" ").trim();
+        return cleanMerchantValue(matcher.group(1));
+    }
+
+    private String findAndCleanUpiDescriptor(String body) {
+        Matcher matcher = UPI_DESCRIPTOR_MERCHANT.matcher(body);
+        return matcher.find() ? cleanMerchantValue(matcher.group(1)) : null;
+    }
+
+    private String cleanMerchantValue(String merchant) {
+        String value = WHITESPACE.matcher(merchant).replaceAll(" ").trim();
         if (value.equals(value.toUpperCase(Locale.ROOT))) {
             StringBuilder title = new StringBuilder();
             for (String word : value.toLowerCase(Locale.ROOT).split(" ")) {

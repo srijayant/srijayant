@@ -29,6 +29,12 @@ public final class ExpenseParser {
                     + "|([0-9][0-9,]*(?:\\.[0-9]{1,2})?)\\s*(?:₹|inr\\b)",
             Pattern.CASE_INSENSITIVE
     );
+    private static final Pattern UPI_DESCRIPTOR_MERCHANT = Pattern.compile(
+            "\\bupi[-/]\\s*[a-z0-9*]{4,}[-/]\\s*"
+                    + "([a-z][a-z0-9 .&'_-]{1,49}?)"
+                    + "(?=\\s*(?:[.,;]|$|\\bto\\s+dispute\\b))",
+            Pattern.CASE_INSENSITIVE
+    );
     private static final Pattern MERCHANT = Pattern.compile(
             "\\b(?:at|to|towards)\\s+([a-z0-9][a-z0-9 .&'@_-]{1,50}?)"
                     + "(?=\\s+(?:on|via|using|ref|reference|upi|txn|transaction|avl|"
@@ -82,6 +88,10 @@ public final class ExpenseParser {
     }
 
     private String extractMerchant(String body, String sender) {
+        Matcher upiDescriptor = UPI_DESCRIPTOR_MERCHANT.matcher(body);
+        if (upiDescriptor.find()) {
+            return cleanMerchant(upiDescriptor.group(1));
+        }
         Matcher matcher = MERCHANT.matcher(body);
         if (matcher.find()) {
             String merchant = cleanMerchant(matcher.group(1));
