@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "match": "regex on normalized merchant, first hit wins",
+  "rules": [
+    {
+      "category": "Groceries",
+      "pattern": "DUNZO|INSTAMA|SWIGGY INST|SWIGGYSTORES|BLINKIT|GROFERS|BIG ?BASKE|BBNOW|^VPA EBZ$|ZEPTO|DMART|STAR BAZAAR|BIG BAZAAR|FUTURE RETAIL|LICIOUS|DELIGHTFUL ?GOURMET|KISANKON|AMAZONPAYGROCERY|EVERYDAY MART|FITINDIAORGANIC|ORGANICCARBON|ANVESHAN|REL(IANCE)? RETAIL|^RELIANCE$"
+    },
+    {
+      "category": "Food & Dining",
+      "pattern": "TATA STA$|SWIGGY|ZOMATO|^ETERNAL LIM|DOMINOS|MC ?DONALD|YUMRESTAURANT|STARBUCKS|THEOBROM|SA DOSA|VAISHALI|CHITALEBANDHU|BIKANERV|SPICE GARDEN|FOODIEFY|CAFE"
+    },
+    {
+      "category": "Alcohol",
+      "pattern": "LIQOU|WINES"
+    },
+    {
+      "category": "Clothing & Footwear",
+      "pattern": "MYNTRA|MYNLOGISTICS|MYNT$|THESOULE|THE SOUL$|BEWAKOOF|JUST ?FEM|WESTSIDE|^TRENT$|^TRENDS$|SHOPPERS ?STOP|MANYAWAR|LOUIS PHILIPPE|BLACKBERRYS|BLKBRY|INDIAN TERRAIN|HENNES|LIFE STY|TANEIRA|METRO ?SHOES|BATA INDIA|MICHAEL KORS|KHALSA CLOTH|GENTS PALACE|URBAN STYLE|THE URBAN FOUND|ROPPEN|WEDDIE"
+    },
+    {
+      "category": "Online Shopping",
+      "pattern": "FNP E|CROSSWOR|WWW TATA|JEEVES|^AMAZON(?! (PRIME|\\d+ EMI))|^VPA AMAZON|AMZN|AMAZONUPI|FLIPKART|FKRT|FLPVTECH|EKART|MEESHO|DEALKART|TATA ?CLI|FSN E COMMERCE|FIRST SHOP ONLI|MINISO|ONE CLUB|TIME SELLERS"
+    },
+    {
+      "category": "Kids",
+      "pattern": "FIRSTCRY|BABYHUG|HAMLEYS|MINIKLUB|GEETANJALIKIDS|THE TOY|TOYCHAMP|FIRSTPRINCIPLEAPPS"
+    },
+    {
+      "category": "Electronics",
+      "pattern": "CROMA|RELIANCE DIGITA|ELECTRONIC"
+    },
+    {
+      "category": "Home & Furniture",
+      "pattern": "PEPPERFRY|GODREJ INTERIO|NILKAMAL|WAKEF|FURLENCO|CITYFURNISH|KIERAYA|HOME WOR|BOROSIL|CROCKERY|THEWOODE|ANJALI HOME|POONAGLASS|SURAJ HOME"
+    },
+    {
+      "category": "Jewellery & Watches",
+      "pattern": "TANISHQ|CARAT|RELIANCE JEWELS|MANAPPURAM|JEWELLERS|TITAN|GIVA|MOHANLAL SONS"
+    },
+    {
+      "category": "Health",
+      "pattern": "C ?LOUDNI|1MG|APOLLO|PHARMA|CHEMIST|PRACTO|HOSPIT|MULTISPECIALITY|^MANIPAL$|CLINIC|EYECARE|LENSKART|OPTICIAN|HUMANHEALTH|PHULAR HEALTH|DRPRAX|VMVICARE"
+    },
+    {
+      "category": "Personal Care",
+      "pattern": "ESTEE LAUDER|COSMTICS|THE BEAU"
+    },
+    {
+      "category": "Home Services",
+      "pattern": "URBAN ?CLAP|URBAN ?COM"
+    },
+    {
+      "category": "Transport",
+      "pattern": "UBER|ANI TECHNOLOGIE|RAPIDO|PORTER|BLU SMAR|BLUEDART|YOUR DRIVER"
+    },
+    {
+      "category": "Vehicle",
+      "pattern": "CAREPRO AUTO|ZENITH AUTO|CARS24|BUNNYCAR"
+    },
+    {
+      "category": "Travel",
+      "pattern": "IRCTC|MAKEMYTRIP|GOINDIGO|EASY TRIP|SPICEJET|VFS GLOB|PASSPORTSEVA|VIVANTA|HOTEL|^M S HOTE"
+    },
+    {
+      "category": "Bills & Utilities",
+      "pattern": "WWW AIRT|AIRTEL|^JIO|JIO@|VODAFONE|HATHWAY|BROADBAND|TATA ?PLA|TATA ?SKY|DISHINFRA|GPAYBILLPAY|POWERACCESS|BILLDESK|^UPI-LIC BILLDESK"
+    },
+    {
+      "category": "Housing",
+      "pattern": "NOBROKER|GODREJ ?PROPE|GODREJ MEADO|ALYSSUM"
+    },
+    {
+      "category": "Subscriptions",
+      "pattern": "NETFLIX|AMAZON PRIME|HOTSTAR|GOOGLE PLAY|PLAYSTORE|APPLE|MICROSOFT|SCRIBD|ELEVEN LABS|MONEYCONTROL|WOMENS ERA|GOOGLE INDIA DIGITAL"
+    },
+    {
+      "category": "Entertainment",
+      "pattern": "BOOKMYSHOW|TIMEZONE|RUMMY|AQUATICA|ASTROTALK"
+    },
+    {
+      "category": "Insurance",
+      "pattern": "TATAAIA|ACKO|CARE HEALTH|STAR ?HEAL|HDFCERGO|TATA AIA|BAJAJALLIANZ|^LIC$|LIFE ?IN|FUTUREGENERALI|RETAIL STARHEAL"
+    },
+    {
+      "category": "EMI & Loans",
+      "pattern": "BAJAJ ?FIN|AMAZON \\d+ EMI|^EMI \\d|OLA ?FINA|OLAFINANCIAL"
+    },
+    {
+      "category": "Investments",
+      "pattern": "ZERODHA|ZERMCX|UPSTOX|5PAISA|SMALLCASE|NPSTRUST|MMTCPAMP|RD INSTALLMENT"
+    },
+    {
+      "category": "Photo & Printing",
+      "pattern": "COPYLINK|PRINTSTE|PHOTOGRA|PHOTOLIG|GITANJALISTUDIO"
+    },
+    {
+      "category": "Education",
+      "pattern": "BITS PILANI|MERITO|MENTORSPOOL|TUTORIAL"
+    }
+  ]
+}
