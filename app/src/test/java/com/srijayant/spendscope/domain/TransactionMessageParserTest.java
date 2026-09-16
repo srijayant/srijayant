@@ -146,4 +146,32 @@ public final class TransactionMessageParserTest {
         assertEquals(1, result.getDuplicatesRemoved());
         assertEquals(2, result.getTransactions().get(0).getDuplicateMessages());
     }
+
+    @Test
+    public void merchantOnlyListIsCanonicalSortedAndDeduplicated() {
+        DerivedTransaction swiggyUpper = parser.parse(
+                11,
+                "HDFCBK",
+                "INR 300 paid to SWIGGY via UPI",
+                timestamp
+        ).orElseThrow();
+        DerivedTransaction swiggyLower = parser.parse(
+                12,
+                "AXISBK",
+                "INR 250 paid to Swiggy via UPI",
+                timestamp
+        ).orElseThrow();
+        DerivedTransaction thesoule = parser.parse(
+                13,
+                "ICICIB",
+                "Card XX2908 debited for INR 719 for UPI-62********86-THESOULE.",
+                timestamp
+        ).orElseThrow();
+
+        List<String> merchants = new MerchantListBuilder().build(
+                List.of(thesoule, swiggyLower, swiggyUpper)
+        );
+
+        assertEquals(List.of("SWIGGY", "THESOULE"), merchants);
+    }
 }

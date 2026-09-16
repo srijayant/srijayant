@@ -37,7 +37,12 @@ Personal rules store only a SHA-256 merchant fingerprint and category in the app
 
 ## JSON export
 
-Tap **Export** and choose a destination with Android's system document picker. SpendScope scans the full SMS history in memory and exports derived transaction fields including sender, timestamp, debit/credit/refund type, amount in paise, instrument, account suffix, explicit `merchant`, merchant or payee, VPA, reference number, balance, suggested category, confidence, and collapsed duplicate count. Merchant extraction supports masked descriptors such as `UPI-********-MERCHANT`.
+Tap **Export**, then choose either:
+
+- **Full transaction details** — sender, timestamp, debit/credit/refund type, amount in paise, instrument, account suffix, explicit `merchant`, merchant or payee, VPA, reference number, balance, suggested category, confidence, and collapsed duplicate count.
+- **Merchant names only** — a deduplicated, alphabetically sorted JSON array of canonical merchant/payee names. It omits amounts, dates, accounts, VPAs, references, balances, and transaction records.
+
+SpendScope then asks for a destination using Android's system document picker and scans the full SMS history in memory. Merchant extraction supports masked descriptors such as `UPI-********-MERCHANT`.
 
 Raw SMS bodies and internal message fingerprints are never included. Duplicate notifications are collapsed conservatively when they share the same transaction reference, sender, type, and amount, or when the normalized message is identical.
 

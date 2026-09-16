@@ -6,9 +6,11 @@ import android.net.Uri;
 import android.provider.Telephony;
 import android.util.JsonWriter;
 
+import com.srijayant.spendscope.domain.MerchantListBuilder;
 import com.srijayant.spendscope.domain.TransactionDeduplicator;
 import com.srijayant.spendscope.domain.TransactionMessageParser;
 import com.srijayant.spendscope.model.DerivedTransaction;
+import com.srijayant.spendscope.model.ExportMode;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -23,6 +25,7 @@ public final class TransactionJsonExporter {
     private final ContentResolver contentResolver;
     private final TransactionMessageParser parser;
     private final TransactionDeduplicator deduplicator;
+    private final MerchantListBuilder merchantListBuilder = new MerchantListBuilder();
 
     public TransactionJsonExporter(
             ContentResolver contentResolver,
@@ -34,16 +37,32 @@ public final class TransactionJsonExporter {
         this.deduplicator = deduplicator;
     }
 
-    public ExportSummary export(Uri destination) throws IOException {
+    public ExportSummary export(Uri destination, ExportMode mode) throws IOException {
         List<DerivedTransaction> parsedTransactions = new ArrayList<>();
         int scannedMessages = readTransactions(parsedTransactions);
         TransactionDeduplicator.Result result = deduplicator.deduplicate(parsedTransactions);
-        writeJson(destination, scannedMessages, parsedTransactions.size(), result);
+        int exportedItems;
+        if (mode == ExportMode.MERCHANT_NAMES_ONLY) {
+            List<String> merchants = merchantListBuilder.build(result.getTransactions());
+            writeMerchantJson(
+                    destination,
+                    scannedMessages,
+                    parsedTransactions.size(),
+                    result,
+                    merchants
+            );
+            exportedItems = merchants.size();
+        } else {
+            writeTransactionJson(destination, scannedMessages, parsedTransactions.size(), result);
+            exportedItems = result.getTransactions().size();
+        }
         return new ExportSummary(
                 scannedMessages,
                 parsedTransactions.size(),
                 result.getTransactions().size(),
-                result.getDuplicatesRemoved()
+                result.getDuplicatesRemoved(),
+                exportedItems,
+                mode
         );
     }
 
@@ -82,7 +101,7 @@ public final class TransactionJsonExporter {
         return scanned;
     }
 
-    private void writeJson(
+    private void writeTransactionJson(
             Uri destination,
             int scannedMessages,
             int parsedMessages,
@@ -109,6 +128,40 @@ public final class TransactionJsonExporter {
             writer.name("transactions").beginArray();
             for (DerivedTransaction transaction : result.getTransactions()) {
                 writeTransaction(writer, transaction);
+            }
+            writer.endArray();
+            writer.endObject();
+        }
+    }
+
+    private void writeMerchantJson(
+            Uri destination,
+            int scannedMessages,
+            int parsedMessages,
+            TransactionDeduplicator.Result result,
+            List<String> merchants
+    ) throws IOException {
+        OutputStream output = contentResolver.openOutputStream(destination, "rwt");
+        if (output == null) {
+            throw new IOException("Unable to open the selected document");
+        }
+        try (JsonWriter writer = new JsonWriter(new OutputStreamWriter(
+                output,
+                StandardCharsets.UTF_8
+        ))) {
+            writer.setIndent("  ");
+            writer.beginObject();
+            writer.name("formatVersion").value(1);
+            writer.name("exportType").value("MERCHANT_NAMES_ONLY");
+            writer.name("generatedAt").value(Instant.now().toString());
+            writer.name("rawSmsBodiesIncluded").value(false);
+            writer.name("sourceMessagesScanned").value(scannedMessages);
+            writer.name("transactionMessagesParsed").value(parsedMessages);
+            writer.name("duplicateMessagesRemoved").value(result.getDuplicatesRemoved());
+            writer.name("merchantCount").value(merchants.size());
+            writer.name("merchants").beginArray();
+            for (String merchant : merchants) {
+                writer.value(merchant);
             }
             writer.endArray();
             writer.endObject();
@@ -170,17 +223,23 @@ public final class TransactionJsonExporter {
         private final int parsedMessages;
         private final int uniqueTransactions;
         private final int duplicatesRemoved;
+        private final int exportedItems;
+        private final ExportMode mode;
 
         private ExportSummary(
                 int scannedMessages,
                 int parsedMessages,
                 int uniqueTransactions,
-                int duplicatesRemoved
+                int duplicatesRemoved,
+                int exportedItems,
+                ExportMode mode
         ) {
             this.scannedMessages = scannedMessages;
             this.parsedMessages = parsedMessages;
             this.uniqueTransactions = uniqueTransactions;
             this.duplicatesRemoved = duplicatesRemoved;
+            this.exportedItems = exportedItems;
+            this.mode = mode;
         }
 
         public int getScannedMessages() {
@@ -197,6 +256,14 @@ public final class TransactionJsonExporter {
 
         public int getDuplicatesRemoved() {
             return duplicatesRemoved;
+        }
+
+        public int getExportedItems() {
+            return exportedItems;
+        }
+
+        public ExportMode getMode() {
+            return mode;
         }
     }
 }

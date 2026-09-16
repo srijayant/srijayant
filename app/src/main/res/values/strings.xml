@@ -39,9 +39,14 @@
     <string name="cancel">Cancel</string>
     <string name="export_json">Export</string>
     <string name="exporting">Exporting…</string>
+    <string name="choose_export_title">What would you like to export?</string>
+    <string name="export_full_option">Full transaction details</string>
+    <string name="export_merchants_option">Merchant names only</string>
     <string name="export_filename">SpendScope-transactions-%1$s.json</string>
+    <string name="export_merchants_filename">SpendScope-merchants-%1$s.json</string>
     <string name="export_started">Scanning all debit and credit messages locally…</string>
     <string name="export_complete">%1$d unique transactions exported; %2$d duplicate messages collapsed.</string>
+    <string name="export_merchants_complete">%1$d unique merchant names exported.</string>
     <string name="export_failed">Export failed before it could complete.</string>
     <string name="refresh">Refresh</string>
     <string name="grant_access">Allow message access</string>

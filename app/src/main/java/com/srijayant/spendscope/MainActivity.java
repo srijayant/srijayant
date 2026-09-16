@@ -27,6 +27,7 @@ import com.srijayant.spendscope.model.ClassificationConfidence;
 import com.srijayant.spendscope.model.ClassificationSource;
 import com.srijayant.spendscope.model.Expense;
 import com.srijayant.spendscope.model.ExpenseCategory;
+import com.srijayant.spendscope.model.ExportMode;
 import com.srijayant.spendscope.model.MonthlyReport;
 import com.srijayant.spendscope.ui.SpendingChartView;
 
@@ -51,7 +52,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public final class MainActivity extends Activity {
     private static final int SMS_PERMISSION_REQUEST = 100;
-    private static final int EXPORT_DOCUMENT_REQUEST = 200;
+    private static final int EXPORT_FULL_DOCUMENT_REQUEST = 200;
+    private static final int EXPORT_MERCHANT_DOCUMENT_REQUEST = 201;
     private static final String PREFS = "spendscope";
     private static final String PERMISSION_REQUESTED = "sms_permission_requested";
     private static final int[] CATEGORY_COLORS = {
@@ -168,11 +170,15 @@ public final class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == EXPORT_DOCUMENT_REQUEST
+        if ((requestCode == EXPORT_FULL_DOCUMENT_REQUEST
+                || requestCode == EXPORT_MERCHANT_DOCUMENT_REQUEST)
                 && resultCode == RESULT_OK
                 && data != null
                 && data.getData() != null) {
-            exportTransactions(data.getData());
+            ExportMode mode = requestCode == EXPORT_MERCHANT_DOCUMENT_REQUEST
+                    ? ExportMode.MERCHANT_NAMES_ONLY
+                    : ExportMode.FULL_TRANSACTIONS;
+            exportTransactions(data.getData(), mode);
         }
     }
 
@@ -234,35 +240,65 @@ public final class MainActivity extends Activity {
             showPermissionPrompt(false);
             return;
         }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.choose_export_title)
+                .setItems(
+                        new String[]{
+                                getString(R.string.export_full_option),
+                                getString(R.string.export_merchants_option)
+                        },
+                        (dialog, which) -> openExportDocument(
+                                which == 1
+                                        ? ExportMode.MERCHANT_NAMES_ONLY
+                                        : ExportMode.FULL_TRANSACTIONS
+                        )
+                )
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void openExportDocument(ExportMode mode) {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("application/json");
         intent.putExtra(
                 Intent.EXTRA_TITLE,
                 getString(
-                        R.string.export_filename,
+                        mode == ExportMode.MERCHANT_NAMES_ONLY
+                                ? R.string.export_merchants_filename
+                                : R.string.export_filename,
                         LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
                 )
         );
-        startActivityForResult(intent, EXPORT_DOCUMENT_REQUEST);
+        startActivityForResult(
+                intent,
+                mode == ExportMode.MERCHANT_NAMES_ONLY
+                        ? EXPORT_MERCHANT_DOCUMENT_REQUEST
+                        : EXPORT_FULL_DOCUMENT_REQUEST
+        );
     }
 
-    private void exportTransactions(Uri destination) {
+    private void exportTransactions(Uri destination, ExportMode mode) {
         setExporting(true);
         Toast.makeText(this, R.string.export_started, Toast.LENGTH_LONG).show();
         executor.execute(() -> {
             try {
                 TransactionJsonExporter.ExportSummary summary =
-                        transactionExporter.export(destination);
+                        transactionExporter.export(destination, mode);
                 runOnUiThread(() -> {
                     setExporting(false);
+                    int message = summary.getMode() == ExportMode.MERCHANT_NAMES_ONLY
+                            ? R.string.export_merchants_complete
+                            : R.string.export_complete;
                     Toast.makeText(
                             this,
-                            getString(
-                                    R.string.export_complete,
-                                    summary.getUniqueTransactions(),
-                                    summary.getDuplicatesRemoved()
-                            ),
+                            summary.getMode() == ExportMode.MERCHANT_NAMES_ONLY
+                                    ? getString(message, summary.getExportedItems())
+                                    : getString(
+                                            message,
+                                            summary.getUniqueTransactions(),
+                                            summary.getDuplicatesRemoved()
+                                    ),
                             Toast.LENGTH_LONG
                     ).show();
                 });
