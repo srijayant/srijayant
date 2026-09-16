@@ -2,11 +2,17 @@ package com.srijayant.spendscope.model;
 
 public enum ExpenseCategory {
     FOOD("Food & dining"),
+    GROCERIES("Groceries"),
     TRANSPORT("Transport"),
+    FUEL("Fuel"),
     SHOPPING("Shopping"),
-    BILLS("Bills & utilities"),
-    HEALTH("Health"),
+    BILLS("Bills & recharge"),
+    RENT("Rent"),
+    EMI("EMI & loans"),
+    HEALTH("Healthcare"),
     ENTERTAINMENT("Entertainment"),
+    EDUCATION("Education"),
+    TRAVEL("Travel"),
     CASH("Cash withdrawal"),
     TRANSFER("Transfers"),
     OTHER("Other");

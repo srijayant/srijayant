@@ -27,9 +27,9 @@ public final class ExpenseParser {
             Pattern.CASE_INSENSITIVE
     );
     private static final Pattern MERCHANT = Pattern.compile(
-            "\\b(?:at|to|towards)\\s+([a-z0-9][a-z0-9 .&'_-]{1,50}?)"
+            "\\b(?:at|to|towards)\\s+([a-z0-9][a-z0-9 .&'@_-]{1,50}?)"
                     + "(?=\\s+(?:on|via|using|ref|reference|upi|txn|transaction|avl|"
-                    + "available|bal|a/c|account|with)\\b|[.,;]|$)",
+                    + "available|bal|a/c|account|with)\\b|[().,;]|$)",
             Pattern.CASE_INSENSITIVE
     );
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");
@@ -98,6 +98,7 @@ public final class ExpenseParser {
 
     private String cleanMerchant(String merchant) {
         String cleaned = merchant
+                .replaceFirst("(?i)^vpa\\s+", "")
                 .replaceAll("(?i)\\s+(?:has|for|dated)$", "")
                 .replaceAll("\\s+", " ")
                 .trim();
@@ -124,20 +125,40 @@ public final class ExpenseParser {
         if (containsAny(value, "atm", "cash withdrawal", "withdrawn")) {
             return ExpenseCategory.CASH;
         }
+        if (containsAny(value, "grocery", "groceries", "supermarket", "bigbasket",
+                "blinkit", "zepto", "dmart", "jiomart", "more retail")) {
+            return ExpenseCategory.GROCERIES;
+        }
         if (containsAny(value, "swiggy", "zomato", "restaurant", "cafe", "coffee",
-                "food", "grocery", "groceries", "supermarket", "bakery")) {
+                "food", "bakery", "dhaba", "biryani")) {
             return ExpenseCategory.FOOD;
         }
-        if (containsAny(value, "uber", "ola", "rapido", "metro", "fuel", "petrol",
-                "diesel", "fastag", "irctc", "railway", "airline", "flight", "cab")) {
+        if (containsAny(value, "fuel", "petrol", "diesel", "iocl", "hpcl", "bpcl",
+                "indian oil", "hindustan petroleum", "bharat petroleum", "fastag")) {
+            return ExpenseCategory.FUEL;
+        }
+        if (containsAny(value, "irctc", "railway", "airline", "flight", "hotel",
+                "makemytrip", "cleartrip", "goibibo", "yatra", "airbnb", "redbus")) {
+            return ExpenseCategory.TRAVEL;
+        }
+        if (containsAny(value, "uber", "ola", "rapido", "metro", "cab", "auto fare",
+                "namma yatri")) {
             return ExpenseCategory.TRANSPORT;
         }
         if (containsAny(value, "amazon", "flipkart", "myntra", "shopping", "retail",
                 "store", "mall", "meesho", "ajio")) {
             return ExpenseCategory.SHOPPING;
         }
+        if (containsAny(value, "house rent", "monthly rent", "rent payment")) {
+            return ExpenseCategory.RENT;
+        }
+        if (containsAny(value, " emi ", "loan repayment", "loan payment", "home loan",
+                "personal loan", "vehicle loan")) {
+            return ExpenseCategory.EMI;
+        }
         if (containsAny(value, "electricity", "broadband", "recharge", "utility",
-                "insurance", "rent", " emi ", "postpaid", "water bill", "gas bill")) {
+                "insurance", "postpaid", "water bill", "gas bill", "mobile bill",
+                "dth", "bescom", "mseb", "tata power")) {
             return ExpenseCategory.BILLS;
         }
         if (containsAny(value, "hospital", "pharmacy", "medical", "clinic", "doctor",
@@ -147,6 +168,10 @@ public final class ExpenseParser {
         if (containsAny(value, "netflix", "spotify", "cinema", "movie", "gaming",
                 "bookmyshow", "hotstar", "prime video")) {
             return ExpenseCategory.ENTERTAINMENT;
+        }
+        if (containsAny(value, "school", "college", "tuition", "course", "udemy",
+                "education", "exam fee", "books")) {
+            return ExpenseCategory.EDUCATION;
         }
         if (containsAny(value, "upi", "imps", "neft", "transferred", "sent to")) {
             return ExpenseCategory.TRANSFER;

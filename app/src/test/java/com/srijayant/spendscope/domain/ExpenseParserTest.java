@@ -51,6 +51,37 @@ public final class ExpenseParserTest {
     }
 
     @Test
+    public void recognizesIndianGroceryAndFuelMerchants() {
+        Expense groceries = parser.parse(
+                6,
+                "HDFCBK",
+                "INR 850 paid to BIGBASKET via UPI",
+                timestamp
+        ).orElseThrow();
+        Expense fuel = parser.parse(
+                7,
+                "ICICIB",
+                "Rs 2,000 spent at INDIAN OIL on your card",
+                timestamp
+        ).orElseThrow();
+
+        assertEquals(ExpenseCategory.GROCERIES, groceries.getCategory());
+        assertEquals(ExpenseCategory.FUEL, fuel.getCategory());
+    }
+
+    @Test
+    public void extractsIndianUpiVpaForConsistentRules() {
+        Expense result = parser.parse(
+                8,
+                "AXISBK",
+                "Rs. 250 debited and transferred to VPA lunchbox@okhdfcbank (UPI Ref 12345)",
+                timestamp
+        ).orElseThrow();
+
+        assertEquals("lunchbox@okhdfcbank", result.getMerchant());
+    }
+
+    @Test
     public void ignoresIncomingCreditAndRefunds() {
         assertFalse(parser.parse(
                 3,

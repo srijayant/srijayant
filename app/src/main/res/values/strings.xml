@@ -12,6 +12,14 @@
     <string name="top_category">Top category</string>
     <string name="spending_breakdown">Spending breakdown</string>
     <string name="recent_expenses">Detected expenses</string>
+    <string name="categorization_hint">Tap any expense to assign its merchant to a personal bucket.</string>
+    <string name="personal_rule">Personal rule</string>
+    <string name="categorize_title">Categorize all %1$s expenses</string>
+    <string name="categorize_message">This bucket will be used for every detected transaction from %1$s, including other months.</string>
+    <string name="categorize_expense_description">%1$s, %2$s, %3$s. Tap to change the category for all matching expenses.</string>
+    <string name="automatic_category">Use automatic detection</string>
+    <string name="apply">Apply</string>
+    <string name="cancel">Cancel</string>
     <string name="refresh">Refresh</string>
     <string name="grant_access">Allow message access</string>
     <string name="permission_title">Turn messages into a monthly report</string>

@@ -2,6 +2,7 @@ package com.srijayant.spendscope;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
@@ -14,6 +15,7 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.srijayant.spendscope.data.CategoryRuleStore;
 import com.srijayant.spendscope.data.SmsExpenseReader;
 import com.srijayant.spendscope.domain.ExpenseParser;
 import com.srijayant.spendscope.model.Expense;
@@ -58,6 +60,7 @@ public final class MainActivity extends Activity {
     private YearMonth lastLoadedMonth;
     private boolean loadInProgress;
     private SmsExpenseReader expenseReader;
+    private CategoryRuleStore categoryRules;
 
     private TextView monthLabel;
     private TextView nextMonthButton;
@@ -82,7 +85,12 @@ public final class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         bindViews();
 
-        expenseReader = new SmsExpenseReader(getContentResolver(), new ExpenseParser());
+        categoryRules = new CategoryRuleStore(this);
+        expenseReader = new SmsExpenseReader(
+                getContentResolver(),
+                new ExpenseParser(),
+                categoryRules
+        );
         monthLabel = findViewById(R.id.monthLabel);
         nextMonthButton = findViewById(R.id.nextMonthButton);
 
@@ -285,6 +293,16 @@ public final class MainActivity extends Activity {
             row.setGravity(android.view.Gravity.CENTER_VERTICAL);
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setPadding(0, dp(15), 0, dp(15));
+            row.setBackgroundResource(android.R.drawable.list_selector_background);
+            row.setClickable(true);
+            row.setFocusable(true);
+            row.setOnClickListener(view -> showCategoryDialog(expense));
+            row.setContentDescription(getString(
+                    R.string.categorize_expense_description,
+                    expense.getMerchant(),
+                    currency.format(expense.getAmount()),
+                    expense.getCategory().getDisplayName()
+            ));
 
             LinearLayout details = new LinearLayout(this);
             details.setOrientation(LinearLayout.VERTICAL);
@@ -292,7 +310,10 @@ public final class MainActivity extends Activity {
             merchant.setMaxLines(1);
             merchant.setEllipsize(android.text.TextUtils.TruncateAt.END);
             details.addView(merchant);
-            String metadata = expense.getCategory().getDisplayName() + " · "
+            String ruleLabel = expense.isUserCategorized()
+                    ? " · " + getString(R.string.personal_rule)
+                    : "";
+            String metadata = expense.getCategory().getDisplayName() + ruleLabel + " · "
                     + expense.getTimestamp()
                     .atZone(ZoneId.systemDefault())
                     .format(transactionDateFormatter);
@@ -313,6 +334,39 @@ public final class MainActivity extends Activity {
                 ));
             }
         }
+    }
+
+    private void showCategoryDialog(Expense expense) {
+        ExpenseCategory[] categories = ExpenseCategory.values();
+        String[] options = new String[categories.length + 1];
+        options[0] = getString(R.string.automatic_category);
+        for (int i = 0; i < categories.length; i++) {
+            options[i + 1] = categories[i].getDisplayName();
+        }
+
+        int[] selected = {0};
+        categoryRules.getCategory(expense.getMerchant()).ifPresent(category -> {
+            selected[0] = category.ordinal() + 1;
+        });
+
+        new AlertDialog.Builder(this)
+                .setTitle(getString(R.string.categorize_title, expense.getMerchant()))
+                .setMessage(getString(R.string.categorize_message, expense.getMerchant()))
+                .setSingleChoiceItems(options, selected[0], (dialog, which) -> selected[0] = which)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.apply, (dialog, which) -> {
+                    if (selected[0] == 0) {
+                        categoryRules.removeCategory(expense.getMerchant());
+                    } else {
+                        categoryRules.setCategory(
+                                expense.getMerchant(),
+                                categories[selected[0] - 1]
+                        );
+                    }
+                    lastLoadedMonth = null;
+                    loadReport();
+                })
+                .show();
     }
 
     private TextView textView(String value, float sizeSp, int color, boolean bold) {

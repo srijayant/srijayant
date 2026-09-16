@@ -325,6 +325,14 @@
                 android:textSize="19sp"
                 android:textStyle="bold" />
 
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:text="@string/categorization_hint"
+                android:textColor="@color/ink_muted"
+                android:textSize="13sp" />
+
             <LinearLayout
                 android:id="@+id/transactionContainer"
                 android:layout_width="match_parent"

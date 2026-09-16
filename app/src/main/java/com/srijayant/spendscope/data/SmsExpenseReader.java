@@ -16,10 +16,16 @@ import java.util.List;
 public final class SmsExpenseReader {
     private final ContentResolver contentResolver;
     private final ExpenseParser parser;
+    private final CategoryRuleStore categoryRules;
 
-    public SmsExpenseReader(ContentResolver contentResolver, ExpenseParser parser) {
+    public SmsExpenseReader(
+            ContentResolver contentResolver,
+            ExpenseParser parser,
+            CategoryRuleStore categoryRules
+    ) {
         this.contentResolver = contentResolver;
         this.parser = parser;
+        this.categoryRules = categoryRules;
     }
 
     public MonthlyReport read(YearMonth month) {
@@ -62,7 +68,7 @@ public final class SmsExpenseReader {
                         cursor.getString(addressColumn),
                         cursor.getString(bodyColumn),
                         cursor.getLong(dateColumn)
-                ).ifPresent(expenses::add);
+                ).map(categoryRules::apply).ifPresent(expenses::add);
             }
         }
 
