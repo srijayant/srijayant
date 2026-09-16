@@ -286,7 +286,7 @@ public final class MainActivity extends Activity {
 
     private void renderTransactions(List<Expense> expenses) {
         transactionContainer.removeAllViews();
-        int visibleCount = Math.min(expenses.size(), 25);
+        int visibleCount = expenses.size();
         for (int i = 0; i < visibleCount; i++) {
             Expense expense = expenses.get(i);
             LinearLayout row = new LinearLayout(this);
