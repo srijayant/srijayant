@@ -33,7 +33,7 @@ public final class SpendingChartView extends View {
     private final RectF trackBounds = new RectF();
     private final RectF barBounds = new RectF();
     private final NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("en", "IN"));
-    private List<Map.Entry<ExpenseCategory, BigDecimal>> categories = Collections.emptyList();
+    private List<Map.Entry<ExpenseCategory, Long>> categories = Collections.emptyList();
 
     public SpendingChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -46,14 +46,14 @@ public final class SpendingChartView extends View {
         trackPaint.setColor(0xFFEFF2F7);
     }
 
-    public void setData(List<Map.Entry<ExpenseCategory, BigDecimal>> values) {
+    public void setData(List<Map.Entry<ExpenseCategory, Long>> values) {
         categories = new ArrayList<>(values.subList(0, Math.min(values.size(), 5)));
         StringBuilder description = new StringBuilder("Spending by category.");
-        for (Map.Entry<ExpenseCategory, BigDecimal> entry : categories) {
+        for (Map.Entry<ExpenseCategory, Long> entry : categories) {
             description.append(' ')
                     .append(entry.getKey().getDisplayName())
                     .append(": ")
-                    .append(currency.format(entry.getValue()))
+                    .append(formatPaise(entry.getValue()))
                     .append('.');
         }
         setContentDescription(description.toString());
@@ -76,15 +76,15 @@ public final class SpendingChartView extends View {
         float barRight = right - dp(68);
         float barHeight = dp(9);
         float radius = barHeight / 2f;
-        BigDecimal maximum = categories.get(0).getValue();
+        long maximum = categories.get(0).getValue();
 
         for (int i = 0; i < categories.size(); i++) {
-            Map.Entry<ExpenseCategory, BigDecimal> entry = categories.get(i);
+            Map.Entry<ExpenseCategory, Long> entry = categories.get(i);
             float centerY = top + (rowHeight * i) + rowHeight / 2f;
             float textBaseline = centerY - (labelPaint.ascent() + labelPaint.descent()) / 2f;
 
             canvas.drawText(entry.getKey().getDisplayName(), left, textBaseline, labelPaint);
-            canvas.drawText(currency.format(entry.getValue()), right, textBaseline, amountPaint);
+            canvas.drawText(formatPaise(entry.getValue()), right, textBaseline, amountPaint);
 
             trackBounds.set(
                     barLeft,
@@ -94,8 +94,7 @@ public final class SpendingChartView extends View {
             );
             canvas.drawRoundRect(trackBounds, radius, radius, trackPaint);
 
-            float ratio = entry.getValue().divide(maximum, 4, java.math.RoundingMode.HALF_UP)
-                    .floatValue();
+            float ratio = maximum == 0L ? 0f : (float) entry.getValue() / maximum;
             barBounds.set(
                     barLeft,
                     centerY - barHeight / 2f,
@@ -105,6 +104,10 @@ public final class SpendingChartView extends View {
             barPaint.setColor(BAR_COLORS[i % BAR_COLORS.length]);
             canvas.drawRoundRect(barBounds, radius, radius, barPaint);
         }
+    }
+
+    private String formatPaise(long paise) {
+        return currency.format(BigDecimal.valueOf(paise, 2));
     }
 
     private float dp(float value) {

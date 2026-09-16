@@ -11,16 +11,23 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.srijayant.spendscope.data.AssetMerchantSeeds;
 import com.srijayant.spendscope.data.CategoryRuleStore;
+import com.srijayant.spendscope.data.IdentityRuleStore;
 import com.srijayant.spendscope.data.SmsExpenseReader;
 import com.srijayant.spendscope.data.TransactionJsonExporter;
+import com.srijayant.spendscope.domain.CategoryPipeline;
 import com.srijayant.spendscope.domain.ExpenseParser;
+import com.srijayant.spendscope.domain.MerchantNormalizer;
 import com.srijayant.spendscope.domain.MerchantRuleKey;
+import com.srijayant.spendscope.domain.MerchantSeedData;
 import com.srijayant.spendscope.domain.TransactionDeduplicator;
 import com.srijayant.spendscope.domain.TransactionMessageParser;
 import com.srijayant.spendscope.model.ClassificationConfidence;
@@ -33,7 +40,6 @@ import com.srijayant.spendscope.ui.SpendingChartView;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -46,6 +52,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -76,7 +83,10 @@ public final class MainActivity extends Activity {
     private boolean loadInProgress;
     private SmsExpenseReader expenseReader;
     private CategoryRuleStore categoryRules;
+    private IdentityRuleStore identityRuleStore;
+    private MerchantNormalizer merchantNormalizer;
     private TransactionJsonExporter transactionExporter;
+    private List<Expense> currentExpenses = new ArrayList<>();
 
     private TextView monthLabel;
     private TextView nextMonthButton;
@@ -106,17 +116,25 @@ public final class MainActivity extends Activity {
         bindViews();
 
         categoryRules = new CategoryRuleStore(this);
+        identityRuleStore = new IdentityRuleStore(this);
+        merchantNormalizer = new MerchantNormalizer();
+        MerchantSeedData seeds = new AssetMerchantSeeds(this).load();
+        CategoryPipeline pipeline = new CategoryPipeline(
+                merchantNormalizer,
+                seeds,
+                categoryRules,
+                identityRuleStore.load()
+        );
+        TransactionMessageParser messageParser = new TransactionMessageParser(pipeline);
         expenseReader = new SmsExpenseReader(
                 getContentResolver(),
-                new ExpenseParser(),
-                categoryRules
+                new ExpenseParser(messageParser),
+                categoryRules,
+                seeds
         );
         transactionExporter = new TransactionJsonExporter(
                 getContentResolver(),
-                new TransactionMessageParser(
-                        new ExpenseParser(),
-                        categoryRules::getCategory
-                ),
+                messageParser,
                 new TransactionDeduplicator()
         );
         monthLabel = findViewById(R.id.monthLabel);
@@ -125,6 +143,7 @@ public final class MainActivity extends Activity {
         findViewById(R.id.previousMonthButton).setOnClickListener(view -> changeMonth(-1));
         nextMonthButton.setOnClickListener(view -> changeMonth(1));
         findViewById(R.id.refreshButton).setOnClickListener(view -> refresh());
+        findViewById(R.id.settingsButton).setOnClickListener(view -> showIdentitySettings());
         exportButton.setOnClickListener(view -> startExport());
         findViewById(R.id.reviewSuggestionsButton)
                 .setOnClickListener(view -> startSuggestionReview());
@@ -358,18 +377,19 @@ public final class MainActivity extends Activity {
 
         emptyView.setVisibility(View.GONE);
         reportContainer.setVisibility(View.VISIBLE);
-        totalAmount.setText(currency.format(report.getTotal()));
+        currentExpenses = report.getExpenses();
+        totalAmount.setText(formatPaise(report.getTotalPaise()));
         transactionCount.setText(getString(
                 R.string.transactions_count,
                 report.getTransactionCount()
         ));
-        averageAmount.setText(currency.format(report.getAverage()));
+        averageAmount.setText(formatPaise(report.getAveragePaise()));
         topCategory.setText(report.getTopCategory().getDisplayName());
 
-        List<Map.Entry<ExpenseCategory, BigDecimal>> categories = report.getCategoriesBySpend();
+        List<Map.Entry<ExpenseCategory, Long>> categories = report.getCategoriesBySpend();
         spendingChart.setData(categories);
         renderSuggestionReview(report.getExpenses());
-        renderCategories(categories, report.getTotal());
+        renderCategories(categories, report.getTotalPaise());
         renderTransactions(report.getExpenses());
     }
 
@@ -377,6 +397,7 @@ public final class MainActivity extends Activity {
         Map<String, SuggestionGroup> grouped = new LinkedHashMap<>();
         for (Expense expense : expenses) {
             if (expense.isUserCategorized()
+                    || !expense.getAutomaticClassification().needsReview()
                     || !MerchantRuleKey.isEligibleMerchant(expense.getMerchant())) {
                 continue;
             }
@@ -390,9 +411,9 @@ public final class MainActivity extends Activity {
         }
 
         pendingSuggestions = new ArrayList<>(grouped.values());
-        pendingSuggestions.sort(Comparator.comparingInt(group ->
+        pendingSuggestions.sort(Comparator.comparingDouble(group ->
                 group.suggestion.getAutomaticClassification().getConfidence().getScore()
-        ));
+        ).thenComparing(Comparator.comparingInt((SuggestionGroup group) -> group.count).reversed()));
         if (pendingSuggestions.isEmpty()) {
             reviewCard.setVisibility(View.GONE);
             return;
@@ -405,12 +426,12 @@ public final class MainActivity extends Activity {
     }
 
     private void renderCategories(
-            List<Map.Entry<ExpenseCategory, BigDecimal>> categories,
-            BigDecimal total
+            List<Map.Entry<ExpenseCategory, Long>> categories,
+            long totalPaise
     ) {
         categoryContainer.removeAllViews();
         for (int i = 0; i < categories.size(); i++) {
-            Map.Entry<ExpenseCategory, BigDecimal> entry = categories.get(i);
+            Map.Entry<ExpenseCategory, Long> entry = categories.get(i);
             LinearLayout item = new LinearLayout(this);
             item.setOrientation(LinearLayout.VERTICAL);
             item.setPadding(0, dp(i == 0 ? 0 : 14), 0, dp(14));
@@ -418,7 +439,7 @@ public final class MainActivity extends Activity {
             LinearLayout labels = new LinearLayout(this);
             labels.setOrientation(LinearLayout.HORIZONTAL);
             TextView name = textView(entry.getKey().getDisplayName(), 14, 0xFF344054, true);
-            TextView amount = textView(currency.format(entry.getValue()), 14, 0xFF344054, true);
+            TextView amount = textView(formatPaise(entry.getValue()), 14, 0xFF344054, true);
             amount.setGravity(android.view.Gravity.END);
             labels.addView(name, new LinearLayout.LayoutParams(0, dp(24), 1f));
             labels.addView(amount, new LinearLayout.LayoutParams(0, dp(24), 1f));
@@ -430,10 +451,8 @@ public final class MainActivity extends Activity {
                     android.R.attr.progressBarStyleHorizontal
             );
             progress.setMax(1000);
-            int share = entry.getValue()
-                    .multiply(BigDecimal.valueOf(1000))
-                    .divide(total, 0, RoundingMode.HALF_UP)
-                    .intValue();
+            int share = totalPaise == 0L
+                    ? 0 : (int) Math.round(entry.getValue() * 1000.0 / totalPaise);
             progress.setProgress(share);
             progress.setProgressTintList(
                     ColorStateList.valueOf(CATEGORY_COLORS[i % CATEGORY_COLORS.length])
@@ -463,7 +482,7 @@ public final class MainActivity extends Activity {
             row.setContentDescription(getString(
                     R.string.categorize_expense_description,
                     expense.getMerchant(),
-                    currency.format(expense.getAmount()),
+                    formatPaise(expense.getAmountPaise()),
                     expense.getCategory().getDisplayName()
             ));
 
@@ -488,7 +507,12 @@ public final class MainActivity extends Activity {
             details.addView(textView(metadata, 12, 0xFF667085, false));
             row.addView(details, new LinearLayout.LayoutParams(0, dp(52), 1f));
 
-            TextView amount = textView("−" + currency.format(expense.getAmount()), 15, 0xFFD94A64, true);
+            TextView amount = textView(
+                    "−" + formatPaise(expense.getAmountPaise()),
+                    15,
+                    0xFFD94A64,
+                    true
+            );
             amount.setGravity(android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
             row.addView(amount, new LinearLayout.LayoutParams(dp(112), dp(52)));
             transactionContainer.addView(row);
@@ -539,6 +563,7 @@ public final class MainActivity extends Activity {
                 .setMessage(getString(
                         R.string.suggestion_message,
                         group.count,
+                        formatPaise(group.totalPaise),
                         confidenceLabel(
                                 suggestion.getAutomaticClassification().getConfidence()
                         ),
@@ -555,8 +580,9 @@ public final class MainActivity extends Activity {
                         showSuggestion(index + 1, changed)
                 )
                 .setPositiveButton(R.string.confirm_next, (dialog, which) -> {
-                    categoryRules.setCategory(
-                            suggestion.getMerchant(),
+                    categoryRules.setRule(
+                            suggestion.getVpa(),
+                            merchantNormalizer.normalize(suggestion.getMerchant()),
                             categories[selected[0]]
                     );
                     showSuggestion(index + 1, true);
@@ -572,8 +598,10 @@ public final class MainActivity extends Activity {
 
     private String confidenceLabel(ClassificationConfidence confidence) {
         switch (confidence) {
+            case CERTAIN:
             case HIGH:
                 return getString(R.string.confidence_high);
+            case MEDIUM_HIGH:
             case MEDIUM:
                 return getString(R.string.confidence_medium);
             case LOW:
@@ -584,12 +612,25 @@ public final class MainActivity extends Activity {
 
     private String sourceLabel(ClassificationSource source) {
         switch (source) {
+            case EXACT_SEED:
+            case PREFIX_SEED:
+            case REGEX_SEED:
             case KNOWN_MERCHANT:
                 return getString(R.string.source_known_merchant);
+            case REMARK_HINT:
             case MESSAGE_KEYWORD:
                 return getString(R.string.source_message_keyword);
+            case MESSAGE_TYPE:
+            case IDENTITY:
             case TRANSACTION_TYPE:
                 return getString(R.string.source_transaction_type);
+            case ORDER_CORRELATION:
+                return getString(R.string.source_order_correlation);
+            case PERSON_HEURISTIC:
+                return getString(R.string.source_person_heuristic);
+            case USER_RULE:
+            case MANUAL:
+                return getString(R.string.personal_rule);
             case UNKNOWN:
             default:
                 return getString(R.string.source_unknown);
@@ -613,7 +654,17 @@ public final class MainActivity extends Activity {
         }
 
         int[] selected = {0};
-        categoryRules.getCategory(expense.getMerchant()).ifPresent(category -> {
+        Optional<ExpenseCategory> savedCategory =
+                categoryRules.getManualCategory(expense.getMessageId());
+        if (savedCategory.isEmpty()) {
+            savedCategory = categoryRules.forVpa(expense.getVpa());
+        }
+        if (savedCategory.isEmpty()) {
+            savedCategory = categoryRules.forKey(
+                    merchantNormalizer.normalize(expense.getMerchant())
+            );
+        }
+        savedCategory.ifPresent(category -> {
             selected[0] = category.ordinal() + 1;
         });
 
@@ -624,17 +675,122 @@ public final class MainActivity extends Activity {
                 .setNegativeButton(R.string.cancel, null)
                 .setPositiveButton(R.string.apply, (dialog, which) -> {
                     if (selected[0] == 0) {
-                        categoryRules.removeCategory(expense.getMerchant());
-                    } else {
-                        categoryRules.setCategory(
-                                expense.getMerchant(),
-                                categories[selected[0] - 1]
+                        categoryRules.removeManualCategory(expense.getMessageId());
+                        categoryRules.removeRule(
+                                expense.getVpa(),
+                                merchantNormalizer.normalize(expense.getMerchant())
                         );
+                        reloadAfterRuleChange();
+                    } else {
+                        promptRuleScope(expense, categories[selected[0] - 1]);
                     }
-                    lastLoadedMonth = null;
-                    loadReport();
                 })
                 .show();
+    }
+
+    private void promptRuleScope(Expense expense, ExpenseCategory category) {
+        int matches = 0;
+        String key = merchantNormalizer.normalize(expense.getMerchant());
+        for (Expense candidate : currentExpenses) {
+            boolean sameVpa = expense.getVpa() != null
+                    && expense.getVpa().equalsIgnoreCase(candidate.getVpa());
+            boolean sameKey = expense.getVpa() == null
+                    && key.equals(merchantNormalizer.normalize(candidate.getMerchant()));
+            if (sameVpa || sameKey) {
+                matches++;
+            }
+        }
+        int pastTransactions = Math.max(0, matches - 1);
+        new AlertDialog.Builder(this)
+                .setTitle(getString(R.string.apply_past_title, pastTransactions))
+                .setMessage(R.string.apply_past_message)
+                .setNegativeButton(R.string.only_this_transaction, (dialog, which) -> {
+                    categoryRules.setManualCategory(expense.getMessageId(), category);
+                    reloadAfterRuleChange();
+                })
+                .setPositiveButton(R.string.apply_all_matching, (dialog, which) -> {
+                    categoryRules.setRule(expense.getVpa(), key, category);
+                    reloadAfterRuleChange();
+                })
+                .show();
+    }
+
+    private void showIdentitySettings() {
+        com.srijayant.spendscope.domain.IdentityRules identities = identityRuleStore.load();
+        LinearLayout form = new LinearLayout(this);
+        form.setOrientation(LinearLayout.VERTICAL);
+        form.setPadding(dp(22), dp(8), dp(22), 0);
+
+        EditText self = new EditText(this);
+        self.setHint(R.string.self_identities_hint);
+        self.setText(String.join(", ", identities.getSelfIdentities()));
+        form.addView(self);
+
+        EditText family = new EditText(this);
+        family.setHint(R.string.family_identities_hint);
+        family.setText(String.join(", ", identities.getFamilyIdentities()));
+        form.addView(family);
+
+        CheckBox excludeFamily = new CheckBox(this);
+        excludeFamily.setText(R.string.exclude_family_spend);
+        excludeFamily.setChecked(identities.isFamilyExcludedFromSpend());
+        form.addView(excludeFamily);
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.identity_settings_title)
+                .setView(form)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.save, (dialog, which) -> {
+                    identityRuleStore.save(
+                            splitIdentities(self.getText().toString()),
+                            splitIdentities(family.getText().toString()),
+                            excludeFamily.isChecked()
+                    );
+                    rebuildReaders();
+                    reloadAfterRuleChange();
+                })
+                .show();
+    }
+
+    private List<String> splitIdentities(String value) {
+        List<String> result = new ArrayList<>();
+        for (String item : value.split(",")) {
+            if (!item.trim().isEmpty()) {
+                result.add(item.trim());
+            }
+        }
+        return result;
+    }
+
+    private void rebuildReaders() {
+        MerchantSeedData seeds = new AssetMerchantSeeds(this).load();
+        CategoryPipeline pipeline = new CategoryPipeline(
+                merchantNormalizer,
+                seeds,
+                categoryRules,
+                identityRuleStore.load()
+        );
+        TransactionMessageParser messageParser = new TransactionMessageParser(pipeline);
+        expenseReader = new SmsExpenseReader(
+                getContentResolver(),
+                new ExpenseParser(messageParser),
+                categoryRules,
+                seeds
+        );
+        transactionExporter = new TransactionJsonExporter(
+                getContentResolver(),
+                messageParser,
+                new TransactionDeduplicator()
+        );
+    }
+
+    private void reloadAfterRuleChange() {
+        lastLoadedMonth = null;
+        loadReport();
+    }
+
+    private String formatPaise(long paise) {
+        return currency.format(BigDecimal.valueOf(paise, 2));
     }
 
     private TextView textView(String value, float sizeSp, int color, boolean bold) {
@@ -709,13 +865,16 @@ public final class MainActivity extends Activity {
     private static final class SuggestionGroup {
         private Expense suggestion;
         private int count = 1;
+        private long totalPaise;
 
         private SuggestionGroup(Expense firstExpense) {
             suggestion = firstExpense;
+            totalPaise = firstExpense.getAmountPaise();
         }
 
         private void add(Expense expense) {
             count++;
+            totalPaise = Math.addExact(totalPaise, expense.getAmountPaise());
             if (expense.getAutomaticClassification().getConfidence().getScore()
                     > suggestion.getAutomaticClassification().getConfidence().getScore()) {
                 suggestion = expense;
