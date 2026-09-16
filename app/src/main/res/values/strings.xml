@@ -37,6 +37,12 @@
     <string name="merchant_not_detected">A specific merchant was not found in this SMS, so a reusable rule cannot be created safely.</string>
     <string name="apply">Apply</string>
     <string name="cancel">Cancel</string>
+    <string name="export_json">Export</string>
+    <string name="exporting">Exporting…</string>
+    <string name="export_filename">SpendScope-transactions-%1$s.json</string>
+    <string name="export_started">Scanning all debit and credit messages locally…</string>
+    <string name="export_complete">%1$d unique transactions exported; %2$d duplicate messages collapsed.</string>
+    <string name="export_failed">Export failed before it could complete.</string>
     <string name="refresh">Refresh</string>
     <string name="grant_access">Allow message access</string>
     <string name="permission_title">Turn messages into a monthly report</string>

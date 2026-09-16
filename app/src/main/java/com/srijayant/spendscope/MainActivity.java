@@ -18,8 +18,11 @@ import android.widget.Toast;
 
 import com.srijayant.spendscope.data.CategoryRuleStore;
 import com.srijayant.spendscope.data.SmsExpenseReader;
+import com.srijayant.spendscope.data.TransactionJsonExporter;
 import com.srijayant.spendscope.domain.ExpenseParser;
 import com.srijayant.spendscope.domain.MerchantRuleKey;
+import com.srijayant.spendscope.domain.TransactionDeduplicator;
+import com.srijayant.spendscope.domain.TransactionMessageParser;
 import com.srijayant.spendscope.model.ClassificationConfidence;
 import com.srijayant.spendscope.model.ClassificationSource;
 import com.srijayant.spendscope.model.Expense;
@@ -27,9 +30,11 @@ import com.srijayant.spendscope.model.ExpenseCategory;
 import com.srijayant.spendscope.model.MonthlyReport;
 import com.srijayant.spendscope.ui.SpendingChartView;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -46,6 +51,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public final class MainActivity extends Activity {
     private static final int SMS_PERMISSION_REQUEST = 100;
+    private static final int EXPORT_DOCUMENT_REQUEST = 200;
     private static final String PREFS = "spendscope";
     private static final String PERMISSION_REQUESTED = "sms_permission_requested";
     private static final int[] CATEGORY_COLORS = {
@@ -68,6 +74,7 @@ public final class MainActivity extends Activity {
     private boolean loadInProgress;
     private SmsExpenseReader expenseReader;
     private CategoryRuleStore categoryRules;
+    private TransactionJsonExporter transactionExporter;
 
     private TextView monthLabel;
     private TextView nextMonthButton;
@@ -87,6 +94,7 @@ public final class MainActivity extends Activity {
     private LinearLayout transactionContainer;
     private View reviewCard;
     private TextView suggestionSummary;
+    private TextView exportButton;
     private List<SuggestionGroup> pendingSuggestions = new ArrayList<>();
 
     @Override
@@ -101,12 +109,21 @@ public final class MainActivity extends Activity {
                 new ExpenseParser(),
                 categoryRules
         );
+        transactionExporter = new TransactionJsonExporter(
+                getContentResolver(),
+                new TransactionMessageParser(
+                        new ExpenseParser(),
+                        categoryRules::getCategory
+                ),
+                new TransactionDeduplicator()
+        );
         monthLabel = findViewById(R.id.monthLabel);
         nextMonthButton = findViewById(R.id.nextMonthButton);
 
         findViewById(R.id.previousMonthButton).setOnClickListener(view -> changeMonth(-1));
         nextMonthButton.setOnClickListener(view -> changeMonth(1));
         findViewById(R.id.refreshButton).setOnClickListener(view -> refresh());
+        exportButton.setOnClickListener(view -> startExport());
         findViewById(R.id.reviewSuggestionsButton)
                 .setOnClickListener(view -> startSuggestionReview());
         permissionButton.setOnClickListener(view -> handlePermissionAction());
@@ -149,6 +166,17 @@ public final class MainActivity extends Activity {
     }
 
     @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == EXPORT_DOCUMENT_REQUEST
+                && resultCode == RESULT_OK
+                && data != null
+                && data.getData() != null) {
+            exportTransactions(data.getData());
+        }
+    }
+
+    @Override
     protected void onDestroy() {
         loadGeneration.incrementAndGet();
         executor.shutdownNow();
@@ -172,6 +200,7 @@ public final class MainActivity extends Activity {
         transactionContainer = findViewById(R.id.transactionContainer);
         reviewCard = findViewById(R.id.reviewCard);
         suggestionSummary = findViewById(R.id.suggestionSummary);
+        exportButton = findViewById(R.id.exportButton);
     }
 
     private void changeMonth(int offset) {
@@ -198,6 +227,58 @@ public final class MainActivity extends Activity {
         } else {
             showPermissionPrompt(false);
         }
+    }
+
+    private void startExport() {
+        if (!hasSmsPermission()) {
+            showPermissionPrompt(false);
+            return;
+        }
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("application/json");
+        intent.putExtra(
+                Intent.EXTRA_TITLE,
+                getString(
+                        R.string.export_filename,
+                        LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
+                )
+        );
+        startActivityForResult(intent, EXPORT_DOCUMENT_REQUEST);
+    }
+
+    private void exportTransactions(Uri destination) {
+        setExporting(true);
+        Toast.makeText(this, R.string.export_started, Toast.LENGTH_LONG).show();
+        executor.execute(() -> {
+            try {
+                TransactionJsonExporter.ExportSummary summary =
+                        transactionExporter.export(destination);
+                runOnUiThread(() -> {
+                    setExporting(false);
+                    Toast.makeText(
+                            this,
+                            getString(
+                                    R.string.export_complete,
+                                    summary.getUniqueTransactions(),
+                                    summary.getDuplicatesRemoved()
+                            ),
+                            Toast.LENGTH_LONG
+                    ).show();
+                });
+            } catch (IOException | RuntimeException error) {
+                runOnUiThread(() -> {
+                    setExporting(false);
+                    Toast.makeText(this, R.string.export_failed, Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+
+    private void setExporting(boolean exporting) {
+        exportButton.setEnabled(!exporting);
+        exportButton.setAlpha(exporting ? 0.5f : 1f);
+        exportButton.setText(exporting ? R.string.exporting : R.string.export_json);
     }
 
     private void loadReport() {
