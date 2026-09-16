@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="background">#F5F7FB</color>
+    <color name="surface">#FFFFFFFF</color>
+    <color name="surface_muted">#FFEFF3F8</color>
+    <color name="ink">#FF172033</color>
+    <color name="ink_muted">#FF667085</color>
+    <color name="primary">#FF5B4CF0</color>
+    <color name="primary_dark">#FF4034C9</color>
+    <color name="accent">#FF13B88A</color>
+    <color name="divider">#FFE4E8F0</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="danger">#FFD94A64</color>
+</resources>

@@ -1,30 +1,34 @@
-# Sri Jayant
+# SpendScope
 
-Enterprise Architect — **SAP BTP**, **AI Core**, and **Agentic AI** for regulated MedTech.
+SpendScope is an Android app that privately scans SMS transaction alerts, detects expenses, categorizes them, and presents a month-by-month spending report.
 
-13+ years across SAP ABAP → BTP full-stack (CAP / RAP / Fiori). Currently lead architect on a **100+ application** BTP estate at Boston Scientific (FDA-validated landscape). M.Tech AI/ML (BITS Pilani) · SAP Certified BTP Solution Architect.
+## Features
 
-## What I build
-- Agentic AI on SAP AI Core (multi-agent orchestration, human-in-the-loop governance)
-- BTP platforms: CAP (Node.js), RAP/ABAP Cloud, CDS, Fiori, XSUAA
-- AI-enabled ERP / supply chain / quality automation in validated environments
+- Reads messages only after explicit `READ_SMS` permission is granted
+- Recognizes common INR debit, card, ATM, and UPI transaction alerts
+- Separates incoming credits, refunds, and unrelated messages
+- Reports monthly total, average transaction, top category, category breakdown, and recent expenses
+- Lets you move between months and refresh on demand
+- Processes everything on-device; there is no internet permission, analytics, account, or cloud storage
 
-## Featured work
-| Project | Focus |
-| --- | --- |
-| [BTP ALM Health Agent](https://github.com/srijayant/btp-alm-health-agent) | Governed agentic risk commentary for BTP estates |
-| [CrewAI Agentic SDLC](https://github.com/srijayant/crewai-btp-sdlc) | Multi-agent SDLC on BTP/AI Core with HITL gates |
-| [HANA Cloud RAG + AI Core](https://github.com/srijayant/hana-cloud-rag-aicore) | Enterprise RAG with HANA vectors + AI Core |
-| [XSUAA Multi-Tenant Kit](https://github.com/srijayant/btp-xsuaa-multitenant-kit) | CAP multi-tenant security reference |
-| [FDA AI Validation Playbook](https://github.com/srijayant/fda-ai-validation-playbook) | Validating agentic AI in MedTech / FDA landscapes |
-| [Globe Localization Engine](https://github.com/srijayant/BSCI-BTP-POC) | CAP/CDS compliance for medical-device localization |
-| [abap-harvester](https://github.com/srijayant/abap-harvester) | SAP ABAP knowledge-base tooling |
-| [pralay](https://github.com/srijayant/pralay) | Side project — 3D WebGL open world |
+## Build
 
-> Concept repos are public reference architectures. Production enterprise systems stay private / sanitized.
+Requirements:
 
-## Stack
-`SAP BTP` · `AI Core` · `CAP` · `RAP` · `CDS` · `Fiori/UI5` · `ABAP on HANA` · `CrewAI` · `Python` · `Node.js` · `HANA Cloud`
+- JDK 17 or newer
+- Android SDK 36 with Build Tools 35.0.0 or newer
 
-## Contact
-Pune, India · [GitHub](https://github.com/srijayant) · srijayantsingh@gmail.com
+```bash
+./gradlew test
+./gradlew assembleDebug
+```
+
+Install the debug APK from `app/build/outputs/apk/debug/app-debug.apk` on an Android 8.0+ device.
+
+## Detection notes
+
+Expense detection is heuristic because bank SMS formats differ. The parser looks for debit/payment language, extracts the first INR amount, derives a merchant where possible, and maps transaction keywords to a category. Verify detected transactions before relying on totals for accounting or tax purposes.
+
+## SMS permission and distribution
+
+Google Play treats SMS permissions as restricted. A general expense tracker may not qualify for Play distribution with `READ_SMS`; direct/internal distribution is the practical default unless the app meets an approved policy exception and completes the required declaration. Message data is not logged, persisted, or transmitted by this app.
